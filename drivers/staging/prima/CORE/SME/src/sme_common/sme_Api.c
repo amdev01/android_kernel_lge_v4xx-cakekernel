@@ -5173,6 +5173,7 @@ eHalStatus sme_InitChannels(tHalHandle hHal)
     return status;
 }
 
+#ifdef CONFIG_ENABLE_LINUX_REG
 /*-------------------------------------------------------------------------
     \fn sme_InitChannelsForCC
 
@@ -5200,6 +5201,7 @@ eHalStatus sme_InitChannelsForCC(tHalHandle hHal, driver_load_type init)
 
     return status;
 }
+#endif
 
 /* ---------------------------------------------------------------------------
 

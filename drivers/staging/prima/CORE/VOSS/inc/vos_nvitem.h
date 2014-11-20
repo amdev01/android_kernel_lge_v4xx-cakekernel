@@ -756,6 +756,7 @@ eNvVersionType vos_nv_getNvVersion
   -------------------------------------------------------------------------*/
 v_U16_t vos_chan_to_freq(v_U8_t chanNum);
 
+#ifdef CONFIG_ENABLE_LINUX_REG
 /**------------------------------------------------------------------------
   \brief vos_getCurrentCountryCode -
   \param   countrycode
@@ -767,4 +768,5 @@ void vos_getCurrentCountryCode
 (
    tANI_U8 *cc
 );
+#endif
 #endif // __VOS_NVITEM_H
