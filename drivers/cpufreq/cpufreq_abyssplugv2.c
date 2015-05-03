@@ -650,8 +650,6 @@ static void bds_check_cpu(struct cpu_bds_info_s *this_bds_info)
 	/* calculate the scaled load across CPU */
 	load_at_max_freq = (cur_load * policy->cur)/policy->cpuinfo.max_freq;
 
-	cpufreq_notify_utilization(policy, load_at_max_freq);
-
 	/* Check for frequency increase */
 	if (max_load_freq > bds_tuners_ins.up_threshold * policy->cur) {
 		/* If switching to max speed, apply sampling_down_factor */
