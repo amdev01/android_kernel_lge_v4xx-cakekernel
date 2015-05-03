@@ -1286,7 +1286,7 @@ static void dbs_freq_increase(struct cpufreq_policy *p, unsigned int freq)
                         CPUFREQ_RELATION_L : CPUFREQ_RELATION_H);
 }
 
-static int input_event_boosted(void)
+static int input_event_boostedi(void)
 {
 	unsigned long flags;
 
@@ -1687,7 +1687,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
                 }
         }
 
-        if (input_event_boosted()) {
+        if (input_event_boostedi()) {
                 return;
         }
 
@@ -1814,7 +1814,7 @@ static void do_dbs_timer(struct work_struct *work)
                                 delay -= jiffies % delay;
                 }
         } else {
-                if (input_event_boosted())
+                if (input_event_boostedi())
                         goto sched_wait;
 
                 __cpufreq_driver_target(dbs_info->cur_policy,
@@ -2119,7 +2119,7 @@ int set_input_event_min_freq(int cpufreq)
         return 0;
 }
 
-void set_input_event_min_freq_by_cpu ( int cpu_nr, int cpufreq){
+void set_input_event_min_freq_by_cpui ( int cpu_nr, int cpufreq){
         input_event_min_freq_array[cpu_nr-1] = cpufreq;
 }
 
