@@ -61,6 +61,9 @@ module_param(touch_boost_active, uint, 0664);
 static unsigned int nr_run_profile_sel = 0;
 module_param(nr_run_profile_sel, uint, 0664);
 
+static unsigned int is_insanity = 1;
+module_param(is_insanity, uint, 0444);
+
 //default to something sane rather than zero
 static unsigned int sampling_time = DEF_SAMPLING_MS;
 
@@ -99,6 +102,13 @@ defined (CONFIG_ARCH_MSM8610) || defined (CONFIG_ARCH_MSM8228)
 
 static unsigned int nr_fshift = NR_FSHIFT;
 
+static unsigned int nr_run_thresholds_insanity[] = {
+	(THREAD_CAPACITY * 575 * MULT_FACTOR) / DIV_FACTOR,
+	(THREAD_CAPACITY * 700 * MULT_FACTOR) / DIV_FACTOR,
+	(THREAD_CAPACITY * 1025 * MULT_FACTOR) / DIV_FACTOR,
+	UINT_MAX
+};
+
 static unsigned int nr_run_thresholds_balance[] = {
 	(THREAD_CAPACITY * 625 * MULT_FACTOR) / DIV_FACTOR,
 	(THREAD_CAPACITY * 875 * MULT_FACTOR) / DIV_FACTOR,
@@ -120,6 +130,11 @@ static unsigned int nr_run_thresholds_conservative[] = {
 	UINT_MAX
 };
 
+static unsigned int nr_run_thresholds_eco_insanity[] = {
+	(THREAD_CAPACITY * 340 * MULT_FACTOR) / DIV_FACTOR,
+	UINT_MAX
+};
+
 static unsigned int nr_run_thresholds_eco[] = {
         (THREAD_CAPACITY * 380 * MULT_FACTOR) / DIV_FACTOR,
 	UINT_MAX
@@ -135,9 +150,11 @@ static unsigned int nr_run_thresholds_disable[] = {
 };
 
 static unsigned int *nr_run_profiles[] = {
+	nr_run_thresholds_insanity,
 	nr_run_thresholds_balance,
 	nr_run_thresholds_performance,
 	nr_run_thresholds_conservative,
+	nr_run_thresholds_eco_insanity,
 	nr_run_thresholds_eco,
 	nr_run_thresholds_eco_extreme,
 	nr_run_thresholds_disable,
