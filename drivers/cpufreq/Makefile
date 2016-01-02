@@ -4,6 +4,7 @@ obj-$(CONFIG_CPU_FREQ)			+= cpufreq.o cpu-boost.o
 obj-$(CONFIG_CPU_FREQ_STAT)             += cpufreq_stats.o
 
 # CPUfreq governors 
+obj-$(CONFIG_CPU_FREQ_GOV_ALUCARD)	+= cpufreq_alucard.o
 obj-$(CONFIG_CPU_FREQ_GOV_WHEATLEY)	+= cpufreq_wheatley.o
 obj-$(CONFIG_CPU_FREQ_GOV_USERSPACE)	+= cpufreq_userspace.o
 obj-$(CONFIG_CPU_FREQ_GOV_UBERDEMAND)	+= cpufreq_uberdemand.o
