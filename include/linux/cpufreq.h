@@ -324,6 +324,10 @@ int cpufreq_update_policy(unsigned int cpu);
 #ifdef CONFIG_CPU_FREQ
 /* query the current CPU frequency (in kHz). If zero, cpufreq couldn't detect it */
 unsigned int cpufreq_get(unsigned int cpu);
+unsigned int cpufreq_quick_get(unsigned int cpu);
+unsigned int cpufreq_quick_get_max(unsigned int cpu);
+unsigned int cpufreq_quick_get_util(unsigned int cpu);
+void disable_cpufreq(void);
 #else
 static inline unsigned int cpufreq_get(unsigned int cpu)
 {
