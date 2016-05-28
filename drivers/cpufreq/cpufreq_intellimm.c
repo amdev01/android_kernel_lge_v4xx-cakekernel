@@ -979,7 +979,7 @@ static void dbs_freq_increase(struct cpufreq_policy *p, unsigned int freq)
 			CPUFREQ_RELATION_L : CPUFREQ_RELATION_H);
 }
 
-int input_event_boostedi(void)
+int input_event_boosted(void)
 {
 	unsigned long flags;
 
@@ -1128,7 +1128,7 @@ set_freq:
 	}
 
 	// shortcuts
-	if (input_event_boostedi()) {
+	if (input_event_boosted()) {
 		return;
 	}
 
@@ -1236,7 +1236,7 @@ static void do_dbs_timer(struct work_struct *work)
 		}
 	} else {
 		delay = dbs_info->freq_lo_jiffies;
-		if (input_event_boostedi())
+		if (input_event_boosted())
 			goto sched_wait;
 
 		__cpufreq_driver_target(dbs_info->cur_policy,
