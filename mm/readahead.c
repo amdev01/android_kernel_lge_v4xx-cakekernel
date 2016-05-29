@@ -18,6 +18,36 @@
 #include <linux/pagevec.h>
 #include <linux/pagemap.h>
 
+unsigned long max_readahead_pages = VM_MAX_READAHEAD * 1024 / PAGE_CACHE_SIZE;
+
+static int __init readahead(char *str)
+{
+	unsigned long bytes;
+
+	if (!str)
+		return -EINVAL;
+
+	bytes = memparse(str, &str);
+
+	if (*str != '\0')
+		return -EINVAL;
+
+	if (bytes) {
+		if (bytes < PAGE_CACHE_SIZE) /* missed 'k'/'m' suffixes? */
+			return -EINVAL;
+
+		if (bytes > 256 << 20)       /* limit to 256MB */
+			bytes = 256 << 20;
+	}
+
+	max_readahead_pages = bytes / PAGE_CACHE_SIZE;
+	default_backing_dev_info.ra_pages = max_readahead_pages;
+
+	return 0;
+}
+
+early_param("readahead", readahead);
+
 /*
  * Initialise a struct file's readahead state.  Assumes that the caller has
  * memset *ra to zero.
@@ -374,10 +404,10 @@ static int try_context_readahead(struct address_space *mapping,
 	size = count_history_pages(mapping, ra, offset, max);
 
 	/*
-	 * no history pages:
+	 * not enough history pages:
 	 * it could be a random read
 	 */
-	if (!size)
+	if (size <= req_size)
 		return 0;
 
 	/*
@@ -388,8 +418,8 @@ static int try_context_readahead(struct address_space *mapping,
 		size *= 2;
 
 	ra->start = offset;
-	ra->size = get_init_ra_size(size + req_size, max);
-	ra->async_size = ra->size;
+	ra->size = min(size + req_size, max);
+	ra->async_size = 1;
 
 	return 1;
 }

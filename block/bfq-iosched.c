@@ -80,7 +80,7 @@ static const int bfq_back_max = 16 * 1024;
 static const int bfq_back_penalty = 2;
 
 /* Idling period duration, in jiffies. */
-static int bfq_slice_idle = HZ / 125;
+static int bfq_slice_idle = 0;
 
 /* Default maximum budget values, in sectors and number of requests. */
 static const int bfq_default_max_budget = 16 * 1024;
@@ -3886,6 +3886,18 @@ static void *bfq_init_queue(struct request_queue *q)
 	return bfqd;
 }
 
+static void bfq_registered_queue(struct request_queue *q)
+{
+	struct elevator_queue *e = q->elevator;
+	struct bfq_data *bfqd = e->elevator_data;
+
+	/*
+	 * Default to IOPS mode with no idling for SSDs
+	 */
+	if (blk_queue_nonrot(q))
+		bfqd->bfq_slice_idle = 0;
+}
+
 static void bfq_slab_kill(void)
 {
 	if (bfq_pool != NULL)
@@ -4149,6 +4161,7 @@ static struct elevator_type iosched_bfq = {
 		.elevator_may_queue_fn =	bfq_may_queue,
 		.elevator_init_fn =		bfq_init_queue,
 		.elevator_exit_fn =		bfq_exit_queue,
+		.elevator_registered_fn =	bfq_registered_queue,
 	},
 	.icq_size =		sizeof(struct bfq_io_cq),
 	.icq_align =		__alignof__(struct bfq_io_cq),
@@ -4162,8 +4175,8 @@ static int __init bfq_init(void)
 	/*
 	 * Can be 0 on HZ < 1000 setups.
 	 */
-	if (bfq_slice_idle == 0)
-		bfq_slice_idle = 1;
+	if (bfq_slice_idle)
+		bfq_slice_idle = 0;
 
 	if (bfq_timeout_async == 0)
 		bfq_timeout_async = 1;
