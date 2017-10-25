@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -75,7 +75,7 @@
 #ifdef CONFIG_ENABLE_LINUX_REG
 
 static v_REGDOMAIN_t cur_reg_domain = REGDOMAIN_COUNT;
-static char linux_reg_cc[2] = {0, 0};
+static  char linux_reg_cc[2] = {0, 0};
 static v_REGDOMAIN_t temp_reg_domain = REGDOMAIN_COUNT;
 
 #else
@@ -89,7 +89,6 @@ static char crda_alpha2[2] = {0, 0}; /* country code from initial crda req */
 static char run_time_alpha2[2] = {0, 0}; /* country code from none-default country req */
 static v_BOOL_t crda_regulatory_entry_valid = VOS_FALSE;
 static v_BOOL_t crda_regulatory_run_time_entry_valid = VOS_FALSE;
-
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -177,7 +176,7 @@ static CountryInfoTable_t countryInfoTable =
       {REGDOMAIN_ETSI, {'D', 'E'}}, //GERMANY
       {REGDOMAIN_ETSI, {'D', 'K'}}, //DENMARK
       {REGDOMAIN_FCC, {'D', 'O'}}, //DOMINICAN REPUBLIC
-      {REGDOMAIN_ETSI, {'D', 'Z'}}, //       
+      {REGDOMAIN_ETSI, {'D', 'Z'}}, //ALGERIA
       {REGDOMAIN_ETSI, {'E', 'C'}}, //ECUADOR
       {REGDOMAIN_ETSI, {'E', 'E'}}, //ESTONIA
       {REGDOMAIN_ETSI, {'E', 'G'}}, //EGYPT
@@ -287,15 +286,15 @@ static CountryInfoTable_t countryInfoTable =
 // loaded on driver initialization if available
 static CountryInfoTable_t countryInfoTable =
 {
-    259,
+    254,
     {
         { REGDOMAIN_FCC,     {'U', 'S'}},  //USA - must be the first country code
         { REGDOMAIN_ETSI,    {'A', 'D'}},  //ANDORRA
-        { REGDOMAIN_WORLD,    {'A', 'E'}},  //UAE
-        { REGDOMAIN_WORLD, {'A', 'F'}},  //AFGHANISTAN
-        { REGDOMAIN_FCC,   {'A', 'G'}},  //ANTIGUA AND BARBUDA
+        { REGDOMAIN_ETSI,    {'A', 'E'}},  //UAE
+        { REGDOMAIN_N_AMER_EXC_FCC, {'A', 'F'}},  //AFGHANISTAN
+        { REGDOMAIN_WORLD,   {'A', 'G'}},  //ANTIGUA AND BARBUDA
         { REGDOMAIN_FCC,     {'A', 'I'}},  //ANGUILLA
-        { REGDOMAIN_ETSI, {'A', 'L'}},  //ALBANIA
+        { REGDOMAIN_ETSI,    {'A', 'L'}},  //ALBANIA
         { REGDOMAIN_N_AMER_EXC_FCC, {'A', 'M'}},  //ARMENIA
         { REGDOMAIN_ETSI,    {'A', 'N'}},  //NETHERLANDS ANTILLES
         { REGDOMAIN_NO_5GHZ, {'A', 'O'}},  //ANGOLA
@@ -303,13 +302,13 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD,   {'A', 'R'}},  //ARGENTINA
         { REGDOMAIN_FCC,     {'A', 'S'}},  //AMERICAN SOMOA
         { REGDOMAIN_ETSI,    {'A', 'T'}},  //AUSTRIA
-        { REGDOMAIN_WORLD,	 {'A', 'U'}},  //AUSTRALIA
+        { REGDOMAIN_WORLD,   {'A', 'U'}},  //AUSTRALIA
         { REGDOMAIN_ETSI,    {'A', 'W'}},  //ARUBA
         { REGDOMAIN_WORLD,   {'A', 'X'}},  //ALAND ISLANDS
         { REGDOMAIN_N_AMER_EXC_FCC, {'A', 'Z'}},  //AZERBAIJAN
         { REGDOMAIN_ETSI,    {'B', 'A'}},  //BOSNIA AND HERZEGOVINA
         { REGDOMAIN_APAC,    {'B', 'B'}},  //BARBADOS
-        { REGDOMAIN_NO_5GHZ, {'B', 'D'}},  //BANGLADESH
+        { REGDOMAIN_HI_5GHZ, {'B', 'D'}},  //BANGLADESH
         { REGDOMAIN_ETSI,    {'B', 'E'}},  //BELGIUM
         { REGDOMAIN_HI_5GHZ, {'B', 'F'}},  //BURKINA FASO
         { REGDOMAIN_ETSI,    {'B', 'G'}},  //BULGARIA
@@ -320,7 +319,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_APAC,    {'B', 'N'}},  //BRUNEI DARUSSALAM
         { REGDOMAIN_HI_5GHZ, {'B', 'O'}},  //BOLIVIA
         { REGDOMAIN_WORLD,   {'B', 'R'}},  //BRAZIL
-        { REGDOMAIN_WORLD,    {'B', 'S'}},  //BAHAMAS
+        { REGDOMAIN_APAC,    {'B', 'S'}},  //BAHAMAS
         { REGDOMAIN_NO_5GHZ, {'B', 'T'}},  //BHUTAN
         { REGDOMAIN_WORLD,   {'B', 'V'}},  //BOUVET ISLAND
         { REGDOMAIN_ETSI,    {'B', 'W'}},  //BOTSWANA
@@ -336,10 +335,10 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD,   {'C', 'K'}},  //COOK ISLANDS
         { REGDOMAIN_APAC,    {'C', 'L'}},  //CHILE
         { REGDOMAIN_NO_5GHZ, {'C', 'M'}},  //CAMEROON
-        { REGDOMAIN_HI_5GHZ, {'C', 'N'}},  //CHINA
-        { REGDOMAIN_WORLD,    {'C', 'O'}},  //COLOMBIA
-        { REGDOMAIN_WORLD,    {'C', 'R'}},  //COSTA RICA
-        { REGDOMAIN_WORLD, {'C', 'U'}},  //CUBA
+        { REGDOMAIN_APAC,    {'C', 'N'}},  //CHINA
+        { REGDOMAIN_APAC,    {'C', 'O'}},  //COLOMBIA
+        { REGDOMAIN_APAC,    {'C', 'R'}},  //COSTA RICA
+        { REGDOMAIN_NO_5GHZ, {'C', 'U'}},  //CUBA
         { REGDOMAIN_ETSI,    {'C', 'V'}},  //CAPE VERDE
         { REGDOMAIN_WORLD,   {'C', 'X'}},  //CHRISTMAS ISLAND
         { REGDOMAIN_ETSI,    {'C', 'Y'}},  //CYPRUS
@@ -348,9 +347,9 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_NO_5GHZ, {'D', 'J'}},  //DJIBOUTI
         { REGDOMAIN_ETSI,    {'D', 'K'}},  //DENMARK
         { REGDOMAIN_WORLD,   {'D', 'M'}},  //DOMINICA
-        { REGDOMAIN_WORLD,    {'D', 'O'}},  //DOMINICAN REPUBLIC
-        { REGDOMAIN_ETSI, {'D', 'Z'}},  //       
-        { REGDOMAIN_WORLD,    {'E', 'C'}},  //ECUADOR
+        { REGDOMAIN_APAC,    {'D', 'O'}},  //DOMINICAN REPUBLIC
+        { REGDOMAIN_ETSI,    {'D', 'Z'}},  //ALGERIA
+        { REGDOMAIN_APAC,    {'E', 'C'}},  //ECUADOR
         { REGDOMAIN_ETSI,    {'E', 'E'}},  //ESTONIA
         { REGDOMAIN_N_AMER_EXC_FCC, {'E', 'G'}},  //EGYPT
         { REGDOMAIN_WORLD,   {'E', 'H'}},  //WESTERN SAHARA
@@ -361,7 +360,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_ETSI,    {'F', 'I'}},  //FINLAND
         { REGDOMAIN_NO_5GHZ, {'F', 'J'}},  //FIJI
         { REGDOMAIN_WORLD,   {'F', 'K'}},  //FALKLAND ISLANDS (MALVINAS)
-        { REGDOMAIN_FCC,   {'F', 'M'}},  //MICRONESIA, FEDERATED STATES OF
+        { REGDOMAIN_WORLD,   {'F', 'M'}},  //MICRONESIA, FEDERATED STATES OF
         { REGDOMAIN_WORLD,   {'F', 'O'}},  //FAROE ISLANDS
         { REGDOMAIN_ETSI,    {'F', 'R'}},  //FRANCE
         { REGDOMAIN_NO_5GHZ, {'G', 'A'}},  //GABON
@@ -380,18 +379,18 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_ETSI,    {'G', 'R'}},  //GREECE
         { REGDOMAIN_WORLD,   {'G', 'S'}},  //SOUTH GEORGIA AND THE SOUTH SANDWICH ISLANDS
         { REGDOMAIN_APAC,    {'G', 'T'}},  //GUATEMALA
-        { REGDOMAIN_FCC,    {'G', 'U'}},  //GUAM
+        { REGDOMAIN_FCC,     {'G', 'U'}},  //GUAM
         { REGDOMAIN_NO_5GHZ, {'G', 'W'}},  //GUINEA-BISSAU
-        { REGDOMAIN_WORLD, {'G', 'Y'}},  //GUYANA
+        { REGDOMAIN_HI_5GHZ, {'G', 'Y'}},  //GUYANA
         { REGDOMAIN_WORLD,   {'H', 'K'}},  //HONGKONG
         { REGDOMAIN_WORLD,   {'H', 'M'}},  //HEARD ISLAND AND MCDONALD ISLANDS
         { REGDOMAIN_WORLD,   {'H', 'N'}},  //HONDURAS
         { REGDOMAIN_ETSI,    {'H', 'R'}},  //CROATIA
         { REGDOMAIN_ETSI,    {'H', 'T'}},  //HAITI
         { REGDOMAIN_ETSI,    {'H', 'U'}},  //HUNGARY
-        { REGDOMAIN_WORLD, {'I', 'D'}},  //INDONESIA
+        { REGDOMAIN_HI_5GHZ, {'I', 'D'}},  //INDONESIA
         { REGDOMAIN_ETSI,    {'I', 'E'}},  //IRELAND
-        { REGDOMAIN_N_AMER_EXC_FCC/*REGDOMAIN_NO_5GHZ*/, {'I', 'L'}},  //ISRAEL
+        { REGDOMAIN_N_AMER_EXC_FCC, {'I', 'L'}},  //ISRAEL
         { REGDOMAIN_WORLD,   {'I', 'M'}},  //ISLE OF MAN
         { REGDOMAIN_APAC,    {'I', 'N'}},  //INDIA
         { REGDOMAIN_WORLD,   {'I', 'O'}},  //BRITISH INDIAN OCEAN TERRITORY
@@ -406,13 +405,13 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_JAPAN,   {'J', '5'}},  //Japan alternate 5
         { REGDOMAIN_WORLD,   {'J', 'E'}},  //JERSEY
         { REGDOMAIN_WORLD,   {'J', 'M'}},  //JAMAICA
-        { REGDOMAIN_WORLD,   {'J', 'O'}},  //JORDAN
+        { REGDOMAIN_APAC,    {'J', 'O'}},  //JORDAN
         { REGDOMAIN_JAPAN,   {'J', 'P'}},  //JAPAN
         { REGDOMAIN_KOREA,   {'K', '1'}},  //Korea alternate 1
         { REGDOMAIN_KOREA,   {'K', '2'}},  //Korea alternate 2
         { REGDOMAIN_KOREA,   {'K', '3'}},  //Korea alternate 3
         { REGDOMAIN_KOREA,   {'K', '4'}},  //Korea alternate 4
-        { REGDOMAIN_HI_5GHZ, {'K', 'E'}},  //KENYA
+        { REGDOMAIN_APAC,    {'K', 'E'}},  //KENYA
         { REGDOMAIN_NO_5GHZ, {'K', 'G'}},  //KYRGYZSTAN
         { REGDOMAIN_ETSI,    {'K', 'H'}},  //CAMBODIA
         { REGDOMAIN_WORLD,   {'K', 'I'}},  //KIRIBATI
@@ -422,9 +421,9 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_KOREA,   {'K', 'R'}},  //KOREA, REPUBLIC OF
         { REGDOMAIN_N_AMER_EXC_FCC, {'K', 'W'}},  //KUWAIT
         { REGDOMAIN_FCC,     {'K', 'Y'}},  //CAYMAN ISLANDS
-        { REGDOMAIN_NO_5GHZ, {'K', 'Z'}},  //KAZAKHSTAN
-        { REGDOMAIN_KOREA,	 {'L', 'A'}},  //LAO PEOPLE'S DEMOCRATIC REPUBLIC
-        { REGDOMAIN_WORLD, {'L', 'B'}},  //LEBANON
+        { REGDOMAIN_WORLD,   {'K', 'Z'}},  //KAZAKHSTAN
+        { REGDOMAIN_WORLD,   {'L', 'A'}},  //LAO PEOPLE'S DEMOCRATIC REPUBLIC
+        { REGDOMAIN_WORLD,   {'L', 'B'}},  //LEBANON
         { REGDOMAIN_WORLD,   {'L', 'C'}},  //SAINT LUCIA
         { REGDOMAIN_ETSI,    {'L', 'I'}},  //LIECHTENSTEIN
         { REGDOMAIN_WORLD,   {'L', 'K'}},  //SRI LANKA
@@ -434,17 +433,17 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_ETSI,    {'L', 'U'}},  //LUXEMBOURG
         { REGDOMAIN_ETSI,    {'L', 'V'}},  //LATVIA
         { REGDOMAIN_NO_5GHZ, {'L', 'Y'}},  //LIBYAN ARAB JAMAHIRIYA
-        { REGDOMAIN_N_AMER_EXC_FCC, {'M', 'A'}},  //MOROCCO
-        { REGDOMAIN_N_AMER_EXC_FCC, {'M', 'C'}},  //MONACO
+        { REGDOMAIN_APAC,    {'M', 'A'}},  //MOROCCO
+        { REGDOMAIN_ETSI,    {'M', 'C'}},  //MONACO
         { REGDOMAIN_ETSI,    {'M', 'D'}},  //MOLDOVA, REPUBLIC OF
         { REGDOMAIN_ETSI,    {'M', 'E'}},  //MONTENEGRO
         { REGDOMAIN_NO_5GHZ, {'M', 'G'}},  //MADAGASCAR
         { REGDOMAIN_WORLD,   {'M', 'H'}},  //MARSHALL ISLANDS
         { REGDOMAIN_ETSI,    {'M', 'K'}},  //MACEDONIA, THE FORMER YUGOSLAV REPUBLIC OF
         { REGDOMAIN_NO_5GHZ, {'M', 'L'}},  //MALI
-        { REGDOMAIN_NO_5GHZ,   {'M', 'M'}},  //MYANMAR
-        { REGDOMAIN_NO_5GHZ, {'M', 'N'}},  //MONGOLIA
-        { REGDOMAIN_HI_5GHZ,    {'M', 'O'}},  //MACAO
+        { REGDOMAIN_WORLD,   {'M', 'M'}},  //MYANMAR
+        { REGDOMAIN_WORLD,   {'M', 'N'}},  //MONGOLIA
+        { REGDOMAIN_APAC,    {'M', 'O'}},  //MACAO
         { REGDOMAIN_FCC,     {'M', 'P'}},  //NORTHERN MARIANA ISLANDS
         { REGDOMAIN_ETSI,    {'M', 'Q'}},  //MARTINIQUE
         { REGDOMAIN_ETSI,    {'M', 'R'}},  //MAURITANIA
@@ -459,21 +458,21 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD,   {'N', 'A'}},  //NAMIBIA
         { REGDOMAIN_NO_5GHZ, {'N', 'C'}},  //NEW CALEDONIA
         { REGDOMAIN_WORLD,   {'N', 'E'}},  //NIGER
-        { REGDOMAIN_WORLD,   {'N', 'F'}},  //NORFOLD ISLAND        
+        { REGDOMAIN_WORLD,   {'N', 'F'}},  //NORFOLD ISLAND
         { REGDOMAIN_WORLD,   {'N', 'G'}},  //NIGERIA
         { REGDOMAIN_WORLD,   {'N', 'I'}},  //NICARAGUA
         { REGDOMAIN_ETSI,    {'N', 'L'}},  //NETHERLANDS
         { REGDOMAIN_ETSI,    {'N', 'O'}},  //NORWAY
-        { REGDOMAIN_WORLD, {'N', 'P'}},  //NEPAL
+        { REGDOMAIN_APAC,    {'N', 'P'}},  //NEPAL
         { REGDOMAIN_NO_5GHZ, {'N', 'R'}},  //NAURU
         { REGDOMAIN_WORLD,   {'N', 'U'}},  //NIUE
-        { REGDOMAIN_WORLD,    {'N', 'Z'}},  //NEW ZEALAND
-        { REGDOMAIN_WORLD,   {'O', 'M'}},  //OMAN
+        { REGDOMAIN_APAC,    {'N', 'Z'}},  //NEW ZEALAND
+        { REGDOMAIN_ETSI,    {'O', 'M'}},  //OMAN
         { REGDOMAIN_APAC,    {'P', 'A'}},  //PANAMA
-        { REGDOMAIN_WORLD, {'P', 'E'}},  //PERU
+        { REGDOMAIN_WORLD,   {'P', 'E'}},  //PERU
         { REGDOMAIN_ETSI,    {'P', 'F'}},  //FRENCH POLYNESIA
-        { REGDOMAIN_APAC,    {'P', 'G'}},  //PAPUA NEW GUINEA
-        { REGDOMAIN_WORLD, {'P', 'H'}},  //PHILIPPINES
+        { REGDOMAIN_WORLD,   {'P', 'G'}},  //PAPUA NEW GUINEA
+        { REGDOMAIN_WORLD,   {'P', 'H'}},  //PHILIPPINES
         { REGDOMAIN_HI_5GHZ, {'P', 'K'}},  //PAKISTAN
         { REGDOMAIN_ETSI,    {'P', 'L'}},  //POLAND
         { REGDOMAIN_WORLD,   {'P', 'M'}},  //SAINT PIERRE AND MIQUELON
@@ -487,24 +486,24 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_ETSI,    {'R', 'E'}},  //REUNION
         { REGDOMAIN_ETSI,    {'R', 'O'}},  //ROMANIA
         { REGDOMAIN_ETSI,    {'R', 'S'}},  //SERBIA
-        { REGDOMAIN_WORLD,    {'R', 'U'}},  //RUSSIA
-        { REGDOMAIN_HI_5GHZ, {'R', 'W'}},  //RWANDA
-        { REGDOMAIN_WORLD,	 {'S', 'A'}},  //SAUDI ARABIA
+        { REGDOMAIN_APAC,    {'R', 'U'}},  //RUSSIA
+        { REGDOMAIN_WORLD,   {'R', 'W'}},  //RWANDA
+        { REGDOMAIN_WORLD,   {'S', 'A'}},  //SAUDI ARABIA
         { REGDOMAIN_NO_5GHZ, {'S', 'B'}},  //SOLOMON ISLANDS
         { REGDOMAIN_NO_5GHZ, {'S', 'C'}},  //SEYCHELLES
         { REGDOMAIN_WORLD,   {'S', 'D'}},  //SUDAN
         { REGDOMAIN_ETSI,    {'S', 'E'}},  //SWEDEN
-        { REGDOMAIN_WORLD,    {'S', 'G'}},  //SINGAPORE
+        { REGDOMAIN_APAC,    {'S', 'G'}},  //SINGAPORE
         { REGDOMAIN_WORLD,   {'S', 'H'}},  //SAINT HELENA
         { REGDOMAIN_ETSI,    {'S', 'I'}},  //SLOVENNIA
         { REGDOMAIN_WORLD,   {'S', 'J'}},  //SVALBARD AND JAN MAYEN
         { REGDOMAIN_ETSI,    {'S', 'K'}},  //SLOVAKIA
-        { REGDOMAIN_NO_5GHZ/*REGDOMAIN_WORLD*/,   {'S', 'L'}},  //SIERRA LEONE
+        { REGDOMAIN_WORLD,   {'S', 'L'}},  //SIERRA LEONE
         { REGDOMAIN_ETSI,    {'S', 'M'}},  //SAN MARINO
         { REGDOMAIN_ETSI,    {'S', 'N'}},  //SENEGAL
         { REGDOMAIN_NO_5GHZ, {'S', 'O'}},  //SOMALIA
         { REGDOMAIN_NO_5GHZ, {'S', 'R'}},  //SURINAME
-        { REGDOMAIN_NO_5GHZ/*REGDOMAIN_WORLD*/,   {'S', 'T'}},  //SAO TOME AND PRINCIPE
+        { REGDOMAIN_WORLD,   {'S', 'T'}},  //SAO TOME AND PRINCIPE
         { REGDOMAIN_APAC,    {'S', 'V'}},  //EL SALVADOR
         { REGDOMAIN_NO_5GHZ, {'S', 'Y'}},  //SYRIAN ARAB REPUBLIC
         { REGDOMAIN_NO_5GHZ, {'S', 'Z'}},  //SWAZILAND
@@ -519,35 +518,30 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_NO_5GHZ, {'T', 'M'}},  //TURKMENISTAN
         { REGDOMAIN_N_AMER_EXC_FCC, {'T', 'N'}},  //TUNISIA
         { REGDOMAIN_NO_5GHZ, {'T', 'O'}},  //TONGA
-        { REGDOMAIN_N_AMER_EXC_FCC, {'T', 'R'}},  //TURKEY
+        { REGDOMAIN_ETSI,    {'T', 'R'}},  //TURKEY
         { REGDOMAIN_WORLD,   {'T', 'T'}},  //TRINIDAD AND TOBAGO
         { REGDOMAIN_NO_5GHZ, {'T', 'V'}},  //TUVALU
-        { REGDOMAIN_WORLD,   {'T', 'W'}},  //TAIWAN, PROVINCE OF CHINA
+        { REGDOMAIN_FCC,     {'T', 'W'}},  //TAIWAN, PROVINCE OF CHINA
         { REGDOMAIN_HI_5GHZ, {'T', 'Z'}},  //TANZANIA, UNITED REPUBLIC OF
-        { REGDOMAIN_WORLD, {'U', 'A'}},  //UKRAINE
-        { REGDOMAIN_WORLD,   {'U', 'G'}},  //UGANDA
+        { REGDOMAIN_WORLD,   {'U', 'A'}},  //UKRAINE
+        { REGDOMAIN_KOREA,   {'U', 'G'}},  //UGANDA
         { REGDOMAIN_FCC,     {'U', 'M'}},  //UNITED STATES MINOR OUTLYING ISLANDS
         { REGDOMAIN_WORLD,   {'U', 'Y'}},  //URUGUAY
-        { REGDOMAIN_WORLD,   {'U', 'Z'}},  //UZBEKISTAN
+        { REGDOMAIN_FCC,     {'U', 'Z'}},  //UZBEKISTAN
         { REGDOMAIN_ETSI,    {'V', 'A'}},  //HOLY SEE (VATICAN CITY STATE)
         { REGDOMAIN_WORLD,   {'V', 'C'}},  //SAINT VINCENT AND THE GRENADINES
-        { REGDOMAIN_APAC, {'V', 'E'}},  //VENEZUELA
+        { REGDOMAIN_HI_5GHZ, {'V', 'E'}},  //VENEZUELA
         { REGDOMAIN_ETSI,    {'V', 'G'}},  //VIRGIN ISLANDS, BRITISH
         { REGDOMAIN_FCC,     {'V', 'I'}},  //VIRGIN ISLANDS, US
-        { REGDOMAIN_WORLD, {'V', 'N'}},  //VIET NAM 
+        { REGDOMAIN_FCC,     {'V', 'N'}},  //VIET NAM
         { REGDOMAIN_NO_5GHZ, {'V', 'U'}},  //VANUATU
         { REGDOMAIN_WORLD,   {'W', 'F'}},  //WALLIS AND FUTUNA
-        { REGDOMAIN_WORLD, {'W', 'S'}},  //SOMOA
+        { REGDOMAIN_N_AMER_EXC_FCC, {'W', 'S'}},  //SOMOA
         { REGDOMAIN_NO_5GHZ, {'Y', 'E'}},  //YEMEN
         { REGDOMAIN_ETSI,    {'Y', 'T'}},  //MAYOTTE
         { REGDOMAIN_WORLD,   {'Z', 'A'}},  //SOUTH AFRICA
         { REGDOMAIN_APAC,    {'Z', 'M'}},  //ZAMBIA
-        { REGDOMAIN_ETSI, {'Z', 'W'}},  //ZIMBABWE
-        { REGDOMAIN_WORLD , {'A', 'U'}},  //AUSTRALIA
-        { REGDOMAIN_KOREA , {'L', 'A'}},  //LAO
-        { REGDOMAIN_WORLD , {'N', 'P'}},  //NEPAL
-        { REGDOMAIN_WORLD , {'S', 'A'}},  //SOUDI
-        { REGDOMAIN_WORLD , {'W', 'S'}},  //SOMOA
+        { REGDOMAIN_ETSI,    {'Z', 'W'}},  //ZIMBABWE
     }
 };
 
@@ -1098,13 +1092,9 @@ VOS_STATUS vos_nv_open(void)
     v_SIZE_t bufSize;
     v_SIZE_t nvReadBufSize;
     v_BOOL_t itemIsValid = VOS_FALSE;
-/*                                                                  */
-#ifdef CUSTOMER_LGE
-    hdd_context_t *pHddCtx = NULL;
-#endif
-/*                                                                */
     v_U32_t dataOffset;
     sHalNv *pnvData = NULL;
+    hdd_context_t *pHddCtx = NULL;
 
     /*Get the global context */
     pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
@@ -1277,7 +1267,7 @@ VOS_STATUS vos_nv_open(void)
     }
 
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "INFO: NV binary file version=%d Driver default NV version=%d, continue...\n",
+           "INFO: NV binary file version=%d Driver default NV version=%d, continue...",
            gnvEFSTable->halnv.fields.nvVersion, WLAN_NV_VERSION);
 
      /* Copying the read nv data to the globa NV EFS table */
@@ -1290,7 +1280,7 @@ VOS_STATUS vos_nv_open(void)
            {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                      "!!!WARNING: Using Coupler Type field instead of Fw Config table,\n"
-                     "Make sure that this is intented or may impact performance!!!\n");
+                     "Make sure that this is intended or may impact performance!!!");
            }
 #ifdef FEATURE_WLAN_CH144
            else if ((WLAN_NV_VERSION == NV_VERSION_CH144_CONFIG) &&
@@ -1305,7 +1295,7 @@ VOS_STATUS vos_nv_open(void)
            {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                      "!!!WARNING: NV binary file version doesn't match with Driver default NV version\n"
-                     "Driver NV defaults will be used, may impact performance!!!\n");
+                     "Driver NV defaults will be used, may impact performance!!!");
 
                return VOS_STATUS_SUCCESS;
            }
@@ -1359,21 +1349,29 @@ VOS_STATUS vos_nv_open(void)
                 NULL, sizeof(sDefaultCountry) ) !=  VOS_STATUS_SUCCESS)
                     goto error;
             }
-/*                                                                  */
-#ifdef CUSTOMER_LGE
             pHddCtx = vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
-            if (NULL != pHddCtx) {
-                if (!vos_mem_compare(pHddCtx->cfg_ini->overrideCountryCode, "000", 3)){
-                    vos_mem_copy(pnvEFSTable->halnv.tables.defaultCountryTable.countryCode,
-                    pHddCtx->cfg_ini->overrideCountryCode, 3);
-	        }
-            } else {
-                VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, ("Invalid pHddCtx pointer"));
+            if (NULL != pHddCtx)
+            {
+               if (!vos_mem_compare(pHddCtx->cfg_ini->overrideCountryCode,
+                     CFG_OVERRIDE_COUNTRY_CODE_DEFAULT, 3))
+               {
+                   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                             ("Overriding NV Country(%c%c) from INI (%c%c)"),
+                              pnvEFSTable->halnv.tables.defaultCountryTable.countryCode[0],
+                              pnvEFSTable->halnv.tables.defaultCountryTable.countryCode[1],
+                              pHddCtx->cfg_ini->overrideCountryCode[0],
+                              pHddCtx->cfg_ini->overrideCountryCode[1]);
+                   vos_mem_copy(pnvEFSTable->halnv.tables.defaultCountryTable.countryCode,
+                       pHddCtx->cfg_ini->overrideCountryCode,
+                       3);
+               }
             }
-#endif
-/*                                                                */
+            else
+            {
+                VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                           ("Invalid pHddCtx pointer") );
+            }
         }
-
 
         if (vos_nv_getValidity(VNV_TPC_POWER_TABLE, &itemIsValid) ==
             VOS_STATUS_SUCCESS)
@@ -1508,7 +1506,7 @@ VOS_STATUS vos_nv_close(void)
     if ( !VOS_IS_STATUS_SUCCESS( status ))
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                         "%s : vos_open failed\n",__func__);
+                         "%s : vos_open failed",__func__);
         return VOS_STATUS_E_FAILURE;
     }
     vos_mem_free(pnvEFSTable);
@@ -1546,7 +1544,7 @@ VOS_STATUS vos_nv_getSupportedCountryCode( v_BYTE_t *pBuffer, v_SIZE_t *pBufferS
    if ( NULL == pBuffer || providedBufferSize < *pBufferSize )
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-            ("Insufficient memory for country code list\n"));
+            ("Insufficient memory for country code list"));
       return VOS_STATUS_E_NOMEM;
    }
    for (i = 0; i < countryInfoTable.countryCount; i++)
@@ -1718,7 +1716,7 @@ VOS_STATUS vos_nv_setValidity( VNV_TYPE type, v_BOOL_t itemIsValid )
            gnvEFSTable->nvValidityBitmap = newNvValidityBitmap;
            status = wlan_write_to_efs((v_U8_t*)gnvEFSTable,sizeof(nvEFSTable_t));
            if (! VOS_IS_STATUS_SUCCESS(status)) {
-               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, ("vos_nv_write_to_efs failed!!!\r\n"));
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, ("vos_nv_write_to_efs failed!!!"));
                status = VOS_STATUS_E_FAULT;
            }
        }
@@ -1789,13 +1787,13 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
     if (NULL == outputVoidBuffer)
     {
        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-             ("Buffer provided is NULL\r\n") );
+             ("Buffer provided is NULL") );
        return VOS_STATUS_E_FAULT;
     }
     if (0 == bufferSize)
     {
        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-             ("NV type=%d is invalid\r\n"), type );
+             ("NV type=%d is invalid"), type );
        return VOS_STATUS_E_INVAL;
     }
     // check if the NV item has valid data
@@ -1803,7 +1801,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
    if (!itemIsValid)
    {
        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
-            "NV type=%d does not have valid data\r\n", type );
+            "NV type=%d does not have valid data", type );
        return VOS_STATUS_E_EMPTY;
    }
    switch(type)
@@ -1812,7 +1810,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            itemSize = sizeof(gnvEFSTable->halnv.fields);
            if(bufferSize != itemSize) {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -1824,7 +1822,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            itemSize = sizeof(gnvEFSTable->halnv.tables.pwrOptimum);
            if(bufferSize != itemSize) {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -1836,7 +1834,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            itemSize = sizeof(gnvEFSTable->halnv.tables.regDomains);
            if(bufferSize != itemSize) {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -1848,7 +1846,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            itemSize = sizeof(gnvEFSTable->halnv.tables.defaultCountryTable);
            if(bufferSize != itemSize) {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -1860,7 +1858,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            itemSize = sizeof(gnvEFSTable->halnv.tables.plutCharacterized);
            if(bufferSize != itemSize) {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -1872,7 +1870,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            itemSize = sizeof(gnvEFSTable->halnv.tables.plutPdadcOffset);
            if(bufferSize != itemSize) {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -1887,7 +1885,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            if(bufferSize != itemSize) {
 
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -1902,7 +1900,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            if(bufferSize != itemSize) {
 
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -1917,7 +1915,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            if(bufferSize != itemSize) {
 
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -1929,7 +1927,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            itemSize = sizeof(gnvEFSTable->halnv.tables.antennaPathLoss);
            if(bufferSize != itemSize) {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -1941,7 +1939,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            itemSize = sizeof(gnvEFSTable->halnv.tables.pktTypePwrLimits);
            if(bufferSize != itemSize) {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -1953,7 +1951,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            itemSize = sizeof(gnvEFSTable->halnv.tables.ofdmCmdPwrOffset);
            if(bufferSize != itemSize) {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -1965,7 +1963,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            itemSize = sizeof(gnvEFSTable->halnv.tables.txbbFilterMode);
            if(bufferSize != itemSize) {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -1979,7 +1977,7 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            itemSize = sizeof(gnvEFSTable->halnv.tables.pwrOptimum_virtualRate);
            if(bufferSize != itemSize) {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                ("type = %d buffer size=%d is less than data size=%d"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
            }
@@ -2763,8 +2761,18 @@ static int create_crda_regulatory_entry(struct wiphy *wiphy,
            }
            else // Enable is only last flag we support
            {
-              pnvEFSTable->halnv.tables.regDomains[NUM_REG_DOMAINS-2].channels[k].enabled =
-                 NV_CHANNEL_ENABLE;
+#ifdef FEATURE_WLAN_CH144
+              if ((RF_CHAN_144 == k) && (E_NV_V3 != vos_nv_getNvVersion()))
+              {
+                 //Do not enable channel 144 when NV version is not NV3
+              }
+              else
+#endif
+              {
+                 pnvEFSTable->halnv.tables.regDomains[NUM_REG_DOMAINS-2].\
+                     channels[k].enabled = NV_CHANNEL_ENABLE;
+              }
+
               // max_power is in dBm
               pnvEFSTable->halnv.tables.regDomains[NUM_REG_DOMAINS-2].channels[k].pwrLimit =
                  (tANI_S8) ((wiphy->bands[i]->channels[j].max_power)/100);
@@ -3086,6 +3094,27 @@ static int create_crda_regulatory_entry_from_regd(struct wiphy *wiphy,
   return 0;
 }
 
+/**------------------------------------------------------------------------
+  \brief vos_chan_to_freq -
+  \param   - input channel number to know channel frequency
+  \return Channel frequency
+  \sa
+  -------------------------------------------------------------------------*/
+v_U16_t vos_chan_to_freq(v_U8_t chanNum)
+{
+   int i;
+
+   for (i = 0; i < NUM_RF_CHANNELS; i++)
+   {
+      if (rfChannels[i].channelNum == chanNum)
+      {
+         return rfChannels[i].targetFreq;
+      }
+   }
+
+   return (0);
+}
+
 #ifdef CONFIG_ENABLE_LINUX_REG
 
 /**------------------------------------------------------------------------
@@ -3342,7 +3371,7 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
     /* 20MHz channels */
     if (nBandCapability == eCSR_BAND_24)
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                  "BandCapability is set to 2G only\n");
+                  "BandCapability is set to 2G only");
 
     for (i = 0, m = 0; i<IEEE80211_NUM_BANDS; i++)
     {
@@ -3358,7 +3387,7 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
         {
 
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                      "error: wiphy->bands is NULL, i = %d\n", i);
+                      "error: wiphy->bands is NULL, i = %d", i);
             return -1;
         }
 
@@ -3400,12 +3429,18 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
             if (0 == err)
 #endif
             {
-                if (!(reg_rule->flags & NL80211_RRF_PASSIVE_SCAN))
-                {
-                    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                              "%s: Remove passive scan restriction for %u",
-                              __func__, wiphy->bands[i]->channels[j].center_freq);
-                    wiphy->bands[i]->channels[j].flags &= ~IEEE80211_CHAN_PASSIVE_SCAN;
+                if  (wiphy->flags & WIPHY_FLAG_CUSTOM_REGULATORY) {
+
+                    if (!(reg_rule->flags & NL80211_RRF_PASSIVE_SCAN))
+                    {
+                        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                                  "%s: Remove passive scan restriction for %u",
+                                  __func__, wiphy->bands[i]->channels[j].center_freq);
+                        wiphy->bands[i]->channels[j].flags &= ~IEEE80211_CHAN_PASSIVE_SCAN;
+                    }
+
+                    wiphy->bands[i]->channels[j].max_power =
+                        (int) MBM_TO_DBM(reg_rule->power_rule.max_eirp);
                 }
             }
 
@@ -3414,7 +3449,7 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
                 if (pnvEFSTable == NULL)
                 {
                     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                              "error: pnvEFSTable is NULL, probably not parsed nv.bin yet\n");
+                              "error: pnvEFSTable is NULL, probably not parsed nv.bin yet");
                     return -1;
                 }
                 pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[k].enabled =
@@ -3432,7 +3467,16 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
                 /* max_power is in mBm = 100 * dBm */
                 pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[k].pwrLimit =
                     (tANI_S8) ((wiphy->bands[i]->channels[j].max_power));
-                if ((wiphy->bands[i]->channels[j].flags & IEEE80211_CHAN_NO_HT40) == 0)
+
+                /* Disable the center channel if neither HT40+ nor HT40- is allowed
+                 */
+                if ((wiphy->bands[i]->channels[j].flags & IEEE80211_CHAN_NO_HT40) ==
+                                                             IEEE80211_CHAN_NO_HT40 )
+                {
+                   pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[n].enabled =
+                        NV_CHANNEL_DISABLE;
+                }
+                else
                 {
                     pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[n].enabled =
                         NV_CHANNEL_DFS;
@@ -3456,13 +3500,31 @@ static int create_linux_regulatory_entry(struct wiphy *wiphy,
             }
             else /* Enable is only last flag we support */
             {
-                pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[k].enabled =
-                    NV_CHANNEL_ENABLE;
+#ifdef FEATURE_WLAN_CH144
+                if ((RF_CHAN_144 == k) && (E_NV_V3 != vos_nv_getNvVersion()))
+                {
+                    //Do not enable channel 144 when NV version is not NV3
+                }
+                else
+#endif
+                {
+                    pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].\
+                        channels[k].enabled = NV_CHANNEL_ENABLE;
+                }
 
                 /* max_power is in dBm */
                 pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[k].pwrLimit =
                     (tANI_S8) ((wiphy->bands[i]->channels[j].max_power));
-                if ((wiphy->bands[i]->channels[j].flags & IEEE80211_CHAN_NO_HT40) == 0)
+
+                /* Disable the center channel if neither HT40+ nor HT40- is allowed
+                 */
+                if ((wiphy->bands[i]->channels[j].flags & IEEE80211_CHAN_NO_HT40) ==
+                                                             IEEE80211_CHAN_NO_HT40 )
+                {
+                   pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[n].enabled =
+                        NV_CHANNEL_DISABLE;
+                }
+                else
                 {
                     pnvEFSTable->halnv.tables.regDomains[temp_reg_domain].channels[n].enabled =
                         NV_CHANNEL_ENABLE;
@@ -3513,13 +3575,23 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
 #endif
 {
     hdd_context_t *pHddCtx = wiphy_priv(wiphy);
-    tANI_U8 nBandCapability;
+    eCsrBand nBandCapability = eCSR_BAND_ALL;
     v_COUNTRYCODE_t country_code;
-    int i;
+    int i, j;
     v_BOOL_t isVHT80Allowed;
 
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                ("cfg80211 reg notifier callback for country"));
+
+    if (TRUE == isWDresetInProgress())
+    {
+        wiphy_dbg(wiphy, "info: %s: SSR is in progress", __func__);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+        return;
+#else
+        return 0;
+#endif
+    }
 
     if (NULL == pHddCtx)
     {
@@ -3532,14 +3604,29 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
 #endif
     }
 
+    if (WLAN_HDD_IS_UNLOAD_IN_PROGRESS(pHddCtx))
+    {
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                   ("%s Unload is in progress"), __func__ );
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+        return;
+#else
+        return 0;
+#endif
+    }
+
+    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+               ("%s: Req initiator %d CC=%c%c"), __func__,
+               request->initiator, request->alpha2[0], request->alpha2[1]);
+
+    sme_GetFreqBand(pHddCtx->hHal, &nBandCapability);
     /* first check if this callback is in response to the driver callback */
 
     if (request->initiator == NL80211_REGDOM_SET_BY_DRIVER)
     {
 
-        nBandCapability = pHddCtx->cfg_ini->nBandCapability;
         isVHT80Allowed = pHddCtx->isVHT80Allowed;
-        if (create_linux_regulatory_entry(wiphy, request, pHddCtx->cfg_ini->nBandCapability) == 0)
+        if (create_linux_regulatory_entry(wiphy, request, nBandCapability) == 0)
         {
 
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
@@ -3579,10 +3666,9 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
         if  (REGDOMAIN_COUNT == temp_reg_domain)
             temp_reg_domain = REGDOMAIN_WORLD;
 
-        nBandCapability = pHddCtx->cfg_ini->nBandCapability;
         isVHT80Allowed = pHddCtx->isVHT80Allowed;
         if (create_linux_regulatory_entry(wiphy, request,
-                                          pHddCtx->cfg_ini->nBandCapability) == 0)
+                                          nBandCapability) == 0)
         {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                       (" regulatory entry created"));
@@ -3610,6 +3696,31 @@ int wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
         }
 
     }
+
+    /* Mark channels 36-48 as passive for US CC */
+
+    if (request->initiator == NL80211_REGDOM_SET_BY_DRIVER ||
+       (request->initiator == NL80211_REGDOM_SET_BY_CORE)||
+       (request->initiator == NL80211_REGDOM_SET_BY_USER))
+    {
+       if (wiphy->bands[IEEE80211_BAND_5GHZ])
+       {
+          for (j=0; j<wiphy->bands[IEEE80211_BAND_5GHZ]->n_channels; j++)
+          {
+              // UNII-1 band channels are passive when domain is FCC.
+             if ((wiphy->bands[IEEE80211_BAND_5GHZ ]->channels[j].center_freq == 5180 ||
+                  wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5200 ||
+                  wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5220 ||
+                  wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5240) &&
+                  ((request->alpha2[0]== 'U'&& request->alpha2[1]=='S') &&
+                                pHddCtx->nEnableStrictRegulatoryForFCC))
+             {
+                 wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].flags |= IEEE80211_CHAN_PASSIVE_SCAN;
+             }
+          }
+       }
+    }
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
     return;
 #else
@@ -3657,13 +3768,14 @@ VOS_STATUS vos_init_wiphy_from_nv_bin(void)
 	     pnvEFSTable->halnv.tables.defaultCountryTable.regDomain) {
 
         reg_domain = pnvEFSTable->halnv.tables.defaultCountryTable.regDomain;
-        wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
     }
     else {
 
         reg_domain = pnvEFSTable->halnv.tables.defaultCountryTable.regDomain;
         wiphy->flags |= WIPHY_FLAG_STRICT_REGULATORY;
     }
+
+    temp_reg_domain = cur_reg_domain = reg_domain;
 
     m = 0;
     for (i = 0; i < IEEE80211_NUM_BANDS; i++)
@@ -3710,6 +3822,18 @@ VOS_STATUS vos_init_wiphy_from_nv_bin(void)
     return VOS_STATUS_SUCCESS;
 }
 
+
+/**------------------------------------------------------------------------
+  \brief vos_getCurrentCountryCode -
+  \param CC  - country code
+  \return None
+  \sa
+  -------------------------------------------------------------------------*/
+
+void vos_getCurrentCountryCode( tANI_U8 *cc)
+{
+    vos_mem_copy(cc, linux_reg_cc, 2);
+}
 
 #else
 
@@ -3783,7 +3907,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
    if (NULL == pRegDomain)
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            ("Invalid reg domain pointer\n") );
+            ("Invalid reg domain pointer") );
       return VOS_STATUS_E_FAULT;
    }
    *pRegDomain = REGDOMAIN_COUNT;
@@ -3791,13 +3915,13 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
    if (NULL == countryCode)
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            ("Country code array is NULL\r\n") );
+            ("Country code array is NULL") );
       return VOS_STATUS_E_FAULT;
    }
    if (0 == countryInfoTable.countryCount)
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            ("Reg domain table is empty\r\n") );
+            ("Reg domain table is empty") );
       return VOS_STATUS_E_EMPTY;
    }
    /* If CRDA regulatory settings is valid, i.e. crda is enabled
@@ -3806,7 +3930,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
       entry if country code is crda's country.
       last one NUM_REG_DOMAINS-1 is reserved for crda */
    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-          "vos_nv_getRegDomainFromCountryCode %c%c\n",
+          "vos_nv_getRegDomainFromCountryCode %c%c",
           countryCode[0], countryCode[1]);
 
    if (crda_regulatory_entry_valid == VOS_TRUE)
@@ -3815,7 +3939,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
        {
           *pRegDomain = NUM_REG_DOMAINS-1;
               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-              "vos_nv_getRegDomainFromCountryCode return crda init entry\n");
+              "vos_nv_getRegDomainFromCountryCode return crda init entry");
           return VOS_STATUS_SUCCESS;
        }
        if (run_time_alpha2[0]==countryCode[0] &&
@@ -3824,7 +3948,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
        {
           *pRegDomain = NUM_REG_DOMAINS-2;
               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-              "vos_nv_getRegDomainFromCountryCode return crda none-default country entry\n");
+              "vos_nv_getRegDomainFromCountryCode return crda none-default country entry");
            return VOS_STATUS_SUCCESS;
        }
        else
@@ -3838,7 +3962,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
            if (NULL == pHddCtx)
            {
               VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    ("Invalid pHddCtx pointer\r\n") );
+                    ("Invalid pHddCtx pointer") );
               return VOS_STATUS_E_FAULT;
            }
 
@@ -3858,11 +3982,11 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
            if (crda_regulatory_run_time_entry_valid == VOS_TRUE)
            {
               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-                 "vos_nv_getRegDomainFromCountryCode return crda new none-default country entry\n");
+                 "vos_nv_getRegDomainFromCountryCode return crda new none-default country entry");
                return VOS_STATUS_SUCCESS;
            }
            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-              "vos_nv_getRegDomainFromCountryCode failed to get crda new none-default country entry\n");
+              "vos_nv_getRegDomainFromCountryCode failed to get crda new none-default country entry");
            return VOS_STATUS_E_EXISTS;
        }
    }
@@ -3886,7 +4010,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
    else
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
-            ("country code is not found\r\n"));
+            ("country code is not found"));
       return VOS_STATUS_E_EXISTS;
    }
 }
@@ -3919,11 +4043,38 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
     v_REGDOMAIN_t domainIdCurrent;
     tANI_U8 ccode[WNI_CFG_COUNTRY_CODE_LEN];
     tANI_U8 uBufLen = WNI_CFG_COUNTRY_CODE_LEN;
-    tANI_U8 nBandCapability;
+    eCsrBand nBandCapability = eCSR_BAND_ALL;
     int i,j,k,m;
 
     wiphy_dbg(wiphy, "info: cfg80211 reg_notifier callback for country"
                      " %c%c\n", request->alpha2[0], request->alpha2[1]);
+
+    /* During load and SSR, vos_open (which will lead to WDA_SetRegDomain)
+     * is called before we assign pHddCtx->hHal so we might get it as
+     * NULL here leading to crash.
+     */
+    if (NULL == pHddCtx)
+    {
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                   ("%s Invalid pHddCtx pointer"), __func__);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+       return;
+#else
+       return 0;
+#endif
+    }
+    if((WLAN_HDD_IS_UNLOAD_IN_PROGRESS(pHddCtx)) ||
+        pHddCtx->isLogpInProgress)
+    {
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                   ("%s load/unload or SSR is in progress Ignore"), __func__ );
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
+       return;
+#else
+       return 0;
+#endif
+    }
+
     if (request->initiator == NL80211_REGDOM_SET_BY_USER)
     {
        int status;
@@ -3974,11 +4125,11 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
        //sme_ChangeCountryCode(pHddCtx->hHal, NULL,
        //    &country_code[0], pAdapter, pHddCtx->pvosContext);
     }
-
+    sme_GetFreqBand(pHddCtx->hHal, &nBandCapability);
     if (request->initiator == NL80211_REGDOM_SET_BY_COUNTRY_IE)
     {
        wiphy_dbg(wiphy, "info: set by country IE\n");
-       if (create_crda_regulatory_entry(wiphy, request, pHddCtx->cfg_ini->nBandCapability) != 0)
+       if (create_crda_regulatory_entry(wiphy, request, nBandCapability) != 0)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
           return;
 #else
@@ -4023,7 +4174,6 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
             settings. iwiphy->bands doesn't seem to set ht40 flags in kernel
             correctly, this may be fixed by later kernel */
 
-         nBandCapability = pHddCtx->cfg_ini->nBandCapability;
          for (i = 0, m = 0; i < IEEE80211_NUM_BANDS; i++)
          {
              if (NULL == wiphy->bands[i])
@@ -4094,7 +4244,15 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
 
          /* Haven't seen any condition that will set by driver after init.
             If we do, then we should also call sme_ChangeCountryCode */
-         if (wiphy->bands[IEEE80211_BAND_5GHZ])
+        /* To Disable the strict regulatory FCC rule, need set
+            gEnableStrictRegulatoryForFCC to zero from INI.
+            By default regulatory FCC rule enable or set to 1, and
+            in this case one can control dynamically using IOCTL
+            (nEnableStrictRegulatoryForFCC).
+            If gEnableStrictRegulatoryForFCC is set to zero then
+            IOCTL operation is inactive                              */
+         if ( pHddCtx->cfg_ini->gEnableStrictRegulatoryForFCC &&
+              wiphy->bands[IEEE80211_BAND_5GHZ])
          {
              for (j=0; j<wiphy->bands[IEEE80211_BAND_5GHZ]->n_channels; j++)
              {
@@ -4103,7 +4261,7 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
                       wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5200 ||
                       wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5220 ||
                       wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5240) &&
-                     ((ccode[0]== 'U'&& ccode[1]=='S') && pHddCtx->nEnableStrictRegulatoryForFCC))
+                     ((domainIdCurrent == REGDOMAIN_FCC) && pHddCtx->nEnableStrictRegulatoryForFCC))
                  {
                      wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].flags |= IEEE80211_CHAN_PASSIVE_SCAN;
                  }
@@ -4111,7 +4269,7 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
                            wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5200 ||
                            wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5220 ||
                            wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].center_freq == 5240) &&
-                          ((ccode[0]!= 'U'&& ccode[1]!='S') || !pHddCtx->nEnableStrictRegulatoryForFCC))
+                          ((domainIdCurrent != REGDOMAIN_FCC) || !pHddCtx->nEnableStrictRegulatoryForFCC))
                  {
                      wiphy->bands[IEEE80211_BAND_5GHZ]->channels[j].flags &= ~IEEE80211_CHAN_PASSIVE_SCAN;
                  }

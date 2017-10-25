@@ -311,6 +311,8 @@ int hmac_sha1(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
     case -EBUSY:
         ret = wait_for_completion_interruptible(&tresult.completion);
         if (!ret && !tresult.err) {
+            for (i=0; i< outlen; i++)
+                output[i] = hash_result[i];
             INIT_COMPLETION(tresult.completion);
             break;
         } else {
@@ -466,8 +468,10 @@ int hmac_md5(v_U8_t *key, v_U8_t ksize, char *plaintext, v_U8_t psize,
         case -EBUSY:
              ret = wait_for_completion_interruptible(&tresult.completion);
              if (!ret && !tresult.err) {
-                  INIT_COMPLETION(tresult.completion);
-                  break;
+                 for (i=0; i< outlen; i++)
+                     output[i] = hash_result[i];
+                 INIT_COMPLETION(tresult.completion);
+                 break;
              } else {
                  VOS_TRACE(VOS_MODULE_ID_VOSS,VOS_TRACE_LEVEL_ERROR, "wait_for_completion_interruptible failed");
                  if (!ret)
@@ -725,4 +729,13 @@ err_tfm:
       }
 
     return VOS_STATUS_SUCCESS;
+}
+
+
+v_U8_t vos_chan_to_band(v_U32_t chan)
+{
+    if (chan <= VOS_24_GHZ_CHANNEL_14)
+        return VOS_BAND_2GHZ;
+
+    return VOS_BAND_5GHZ;
 }

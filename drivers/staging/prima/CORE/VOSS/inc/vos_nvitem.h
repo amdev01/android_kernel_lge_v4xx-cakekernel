@@ -747,4 +747,24 @@ eNvVersionType vos_nv_getNvVersion
    void
 );
 
+
+/**------------------------------------------------------------------------
+  \brief vos_chan_to_freq -
+  \param   - input channel number to know channel frequency
+  \return Channel frequency
+  \sa
+  -------------------------------------------------------------------------*/
+v_U16_t vos_chan_to_freq(v_U8_t chanNum);
+
+/**------------------------------------------------------------------------
+  \brief vos_getCurrentCountryCode -
+  \param   countrycode
+  \return None
+  \sa
+  -------------------------------------------------------------------------*/
+
+void vos_getCurrentCountryCode
+(
+   tANI_U8 *cc
+);
 #endif // __VOS_NVITEM_H

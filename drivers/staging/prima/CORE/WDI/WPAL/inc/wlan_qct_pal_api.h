@@ -361,4 +361,24 @@ void wpalFwDumpReq(wpt_uint32 cmd, wpt_uint32 arg1, wpt_uint32 arg2,
        NONE
 ---------------------------------------------------------------------------*/
 void wpalDevicePanic(void);
+
+/*---------------------------------------------------------------------------
+    wpalIsWDresetInProgress -  calls vos API isWDresetInProgress()
+
+    Param:
+       NONE
+    Return:
+       STATUS
+--------------------------------------------------------------------------*/
+int  wpalIsWDresetInProgress(void);
+
+/*---------------------------------------------------------------------------
+    wpalIsSsrPanicOnFailure -  calls vos API isSsrPanicOnFailure()
+
+    Param:
+       NONE
+    Return:
+       STATUS
+--------------------------------------------------------------------------*/
+int  wpalIsSsrPanicOnFailure(void);
 #endif // __WLAN_QCT_PAL_API_H

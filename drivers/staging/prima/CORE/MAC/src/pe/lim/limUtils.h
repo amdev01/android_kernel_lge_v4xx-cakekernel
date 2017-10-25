@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -501,4 +501,18 @@ void limCleanUpDisassocDeauthReq(tpAniSirGlobal pMac, tANI_U8 *staMac, tANI_BOOL
 
 tANI_BOOLEAN limCheckDisassocDeauthAckPending(tpAniSirGlobal pMac, tANI_U8 *staMac);
 
+void limUtilsframeshtons(tpAniSirGlobal  pCtx,
+                            tANI_U8  *pOut,
+                            tANI_U16  pIn,
+                            tANI_U8  fMsb);
+
+void limUtilsframeshtonl(tpAniSirGlobal  pCtx,
+                            tANI_U8  *pOut,
+                            tANI_U32  pIn,
+                            tANI_U8  fMsb);
+
+void limParseBeaconForTim(tpAniSirGlobal pMac, tANI_U8* pRxPacketInfo,
+                          tpPESession psessionEntry);
+
+void limDecrementPendingMgmtCount (tpAniSirGlobal pMac);
 #endif /* __LIM_UTILS_H */

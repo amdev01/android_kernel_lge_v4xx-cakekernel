@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -93,7 +93,7 @@ tANI_U8 csrRSNOui[][ CSR_RSN_OUI_SIZE ] = {
 };
 
 #ifdef FEATURE_WLAN_WAPI
-tANI_U8 csrWapiOui[][ CSR_WAPI_OUI_SIZE ] = {
+tANI_U8 csrWapiOui[CSR_WAPI_OUI_ROW_SIZE][ CSR_WAPI_OUI_SIZE ] = {
     { 0x00, 0x14, 0x72, 0x00 }, // Reserved
     { 0x00, 0x14, 0x72, 0x01 }, // WAI certificate or SMS4
     { 0x00, 0x14, 0x72, 0x02 } // WAI PSK
@@ -431,7 +431,7 @@ static tCsrCountryInfo gCsrCountryInfo[eCSR_NUM_COUNTRY_INDEX] =
     {REG_DOMAIN_ETSI, {'D', 'K', ' '}},      //DENMARK
     {REG_DOMAIN_WORLD, {'D', 'M', ' '}},     //DOMINICA
     {REG_DOMAIN_WORLD, {'D', 'O', ' '}},       //DOMINICAN REPUBLIC
-    {REG_DOMAIN_WORLD, {'D', 'Z', ' '}},     //       
+    {REG_DOMAIN_WORLD, {'D', 'Z', ' '}},     //ALGERIA
     {REG_DOMAIN_WORLD, {'E', 'C', ' '}},       //ECUADOR
     {REG_DOMAIN_HI_5GHZ, {'E', 'E', ' '}},      //ESTONIA
     {REG_DOMAIN_WORLD, {'E', 'G', ' '}},     //EGYPT
@@ -1451,6 +1451,20 @@ tANI_U8 csrGetInfraOperationChannel( tpAniSirGlobal pMac, tANI_U8 sessionId)
     return channel;
 }
 
+tANI_BOOLEAN csrIsSessionClientAndConnected(tpAniSirGlobal pMac, tANI_U8 sessionId)
+{
+    tCsrRoamSession *pSession = NULL;
+    if ( CSR_IS_SESSION_VALID( pMac, sessionId) && csrIsConnStateInfra( pMac, sessionId))
+    {
+        pSession = CSR_GET_SESSION( pMac, sessionId);
+        if ((pSession->pCurRoamProfile->csrPersona == VOS_STA_MODE) ||
+           (pSession->pCurRoamProfile->csrPersona == VOS_P2P_CLIENT_MODE))
+        {
+           return TRUE;
+        }
+    }
+    return FALSE;
+}
 //This routine will return operating channel on FIRST BSS that is active/operating to be used for concurrency mode.
 //If other BSS is not up or not connected it will return 0 
 
@@ -1540,6 +1554,7 @@ tANI_BOOLEAN csrIsP2pSessionConnected( tpAniSirGlobal pMac )
     tCsrRoamSession *pSession = NULL;
     tANI_U32 countP2pCli = 0;
     tANI_U32 countP2pGo = 0;
+    tANI_U32 countSAP = 0;
 
     for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
     {
@@ -1556,6 +1571,10 @@ tANI_BOOLEAN csrIsP2pSessionConnected( tpAniSirGlobal pMac )
                 if (pSession->pCurRoamProfile->csrPersona == VOS_P2P_GO_MODE) {
                     countP2pGo++;
                 }
+
+                if (pSession->pCurRoamProfile->csrPersona == VOS_STA_SAP_MODE) {
+                    countSAP++;
+                }
             }
         }
     }
@@ -1564,7 +1583,7 @@ tANI_BOOLEAN csrIsP2pSessionConnected( tpAniSirGlobal pMac )
      * - at least one P2P CLI session is connected
      * - at least one P2P GO session is connected
      */
-    if ( (countP2pCli > 0) || (countP2pGo > 0 ) ) {
+    if ( (countP2pCli > 0) || (countP2pGo > 0 ) || (countSAP > 0 ) ) {
         fRc = eANI_BOOLEAN_TRUE;
     }
 
@@ -2910,6 +2929,16 @@ tANI_U16 csrCalculateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U16 sta_bi, tAN
     else
        go_cbi = 100 + (go_gbi % 100);
 
+      if ( sta_bi == 0 )
+    {
+        /* There is possibility to receive zero as value.
+           Which will cause divide by zero. Hence initialise with 100
+        */
+        sta_bi =  100;
+        smsLog(pMac, LOGW,
+            FL("sta_bi 2nd parameter is zero, initialise to %d"), sta_bi);
+    }
+
     // check, if either one is multiple of another
     if (sta_bi > go_cbi)
     {
@@ -3087,6 +3116,14 @@ eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                             continue;
                         }
 
+                        //Assert if connected profile beacon internal is ZERO
+                        if(!pMac->roam.roamSession[sessionId].\
+                            connectedProfile.beaconInterval)
+                        {
+                            smsLog( pMac, LOGE, FL(" Connected profile "
+                                "beacon interval is zero") );
+                        }
+
                             
                         if (csrIsConnStateConnectedInfra(pMac, sessionId) &&
                            (pMac->roam.roamSession[sessionId].connectedProfile.operationChannel
@@ -3111,7 +3148,7 @@ eHalStatus csrValidateMCCBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                 break;
 
                 default :
-                    smsLog(pMac, LOG1, FL(" Persona not supported : %d"),currBssPersona);
+                    smsLog(pMac, LOGE, FL(" Persona not supported : %d"),currBssPersona);
                     return eHAL_STATUS_FAILURE;
             }
         }
@@ -3280,7 +3317,11 @@ static tANI_BOOLEAN csrMatchWapiOUIIndex( tpAniSirGlobal pMac, tANI_U8 AllCypher
                                             tANI_U8 cAllCyphers, tANI_U8 ouiIndex,
                                             tANI_U8 Oui[] )
 {
-    return( csrIsWapiOuiMatch( pMac, AllCyphers, cAllCyphers, csrWapiOui[ouiIndex], Oui ) );
+    if (ouiIndex < CSR_WAPI_OUI_ROW_SIZE)// since csrWapiOui row size is 3 .
+          return( csrIsWapiOuiMatch( pMac, AllCyphers, cAllCyphers,
+                                     csrWapiOui[ouiIndex], Oui ) );
+    else
+          return FALSE ;
 
 }
 #endif /* FEATURE_WLAN_WAPI */
@@ -3782,6 +3823,7 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile 
     tANI_U8 *pGroupMgmtCipherSuite;
 #endif
     tDot11fBeaconIEs *pIesLocal = pIes;
+    eCsrAuthType negAuthType = eCSR_AUTH_TYPE_UNKNOWN;
 
     smsLog(pMac, LOGW, "%s called...", __func__);
 
@@ -3797,7 +3839,7 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile 
         // See if the cyphers in the Bss description match with the settings in the profile.
         fRSNMatch = csrGetRSNInformation( hHal, &pProfile->AuthType, pProfile->negotiatedUCEncryptionType, 
                                             &pProfile->mcEncryptionType, &pIesLocal->RSN,
-                                            UnicastCypher, MulticastCypher, AuthSuite, &RSNCapabilities, NULL, NULL );
+                                            UnicastCypher, MulticastCypher, AuthSuite, &RSNCapabilities, &negAuthType, NULL );
         if ( !fRSNMatch ) break;
 
         pRSNIe->IeHeader.ElementID = SIR_MAC_RSN_EID;
@@ -3829,7 +3871,11 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile 
 
         pPMK = (tCsrRSNPMKIe *)( ((tANI_U8 *)(&pAuthSuite->AuthOui[ 1 ])) + sizeof(tANI_U16) );
 
-        if( csrLookupPMKID( pMac, sessionId, pSirBssDesc->bssId, &(PMKId[0]) ) )
+        if (
+#ifdef FEATURE_WLAN_ESE
+        (eCSR_AUTH_TYPE_CCKM_RSN != negAuthType) &&
+#endif
+        csrLookupPMKID( pMac, sessionId, pSirBssDesc->bssId, &(PMKId[0]) ) )
         {
             pPMK->cPMKIDs = 1;
 
@@ -5810,11 +5856,10 @@ void csrReleaseProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile)
             pProfile->pWAPIReqIE = NULL;
         }
 #endif /* FEATURE_WLAN_WAPI */
-
-        if(pProfile->pAddIEScan)
+        if (pProfile->nAddIEScanLength)
         {
-            palFreeMemory(pMac->hHdd, pProfile->pAddIEScan);
-            pProfile->pAddIEScan = NULL;
+           memset(pProfile->addIEScan, 0 , SIR_MAC_MAX_IE_LENGTH+2);
+           pProfile->nAddIEScanLength = 0;
         }
 
         if(pProfile->pAddIEAssoc)
@@ -5898,7 +5943,7 @@ tSirResultCodes csrGetDeAuthRspStatusCode( tSirSmeDeauthRsp *pSmeRsp )
     tANI_U8 *pBuffer = (tANI_U8 *)pSmeRsp;
     tANI_U32 ret;
 
-    pBuffer += (sizeof(tANI_U16) + sizeof(tANI_U16) + sizeof(tSirMacAddr));
+    pBuffer += (sizeof(tANI_U16) + sizeof(tANI_U16) + sizeof(tANI_U8) + sizeof(tANI_U16));
     //tSirResultCodes is an enum, assuming is 32bit
     //If we cannot make this assumption, use copymemory
     pal_get_U32( pBuffer, &ret );
@@ -6135,7 +6180,7 @@ v_CountryInfoSource_t source
         }
         else
         {
-            smsLog(pMac, LOGW, FL("  doesn't match country %c%c"), pCountry[0], pCountry[1]);
+            smsLog(pMac, LOGW, FL(" Couldn't find domain for country code  %c%c"), pCountry[0], pCountry[1]);
             status = eHAL_STATUS_INVALID_PARAMETER;
         }
     }
