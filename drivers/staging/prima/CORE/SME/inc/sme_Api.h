@@ -1485,8 +1485,6 @@ typedef void ( *tSmeChangeCountryCallback)(void *pContext);
 
     \param pCountry New Country Code String
 
-    \param sendRegHint If we want to send reg hint to nl80211
-
     \return eHalStatus  SUCCESS.
 
                          FAILURE or RESOURCES  The API finished and failed.
@@ -1497,8 +1495,7 @@ eHalStatus sme_ChangeCountryCode( tHalHandle hHal,
                                   tANI_U8 *pCountry,
                                   void *pContext,
                                   void* pVosContext,
-                                  tAniBool countryFromUserSpace,
-                                  tAniBool sendRegHint);
+                                  tAniBool countryFromUserSpace );
 
 /* ---------------------------------------------------------------------------
 
@@ -2914,14 +2911,13 @@ VOS_STATUS sme_SendTdlsLinkEstablishParams(tHalHandle hHal,
     \param frame_type - Type of TDLS mgmt frame to be sent.
     \param dialog - dialog token used in the frame.
     \param status - status to be incuded in the frame.
-    \param peerCapability - peerCapability to be incuded in the frame.
     \param buf - additional IEs to be included
     \param len - lenght of additional Ies
     \param responder - Tdls request type
     \- return VOS_STATUS_SUCCES
     -------------------------------------------------------------------------*/
 VOS_STATUS sme_SendTdlsMgmtFrame(tHalHandle hHal, tANI_U8 sessionId, tSirMacAddr peerMac,
-      tANI_U8 frame_type, tANI_U8 dialog, tANI_U16 status, tANI_U32 peerCapability, tANI_U8 *buf, tANI_U8 len, tANI_U8 responder);
+      tANI_U8 frame_type, tANI_U8 dialog, tANI_U16 status, tANI_U8 *buf, tANI_U8 len, tANI_U8 responder);
 /* ---------------------------------------------------------------------------
     \fn sme_ChangeTdlsPeerSta
     \brief  API to Update TDLS peer sta parameters.
@@ -3153,23 +3149,4 @@ sme_StopBatchScanInd
 );
 
 #endif
-
-eHalStatus sme_RoamDelPMKIDfromCache( tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pBSSId );
-
-#ifdef FEATURE_WLAN_CH_AVOID
-/* ---------------------------------------------------------------------------
-    \fn sme_AddChAvoidCallback
-    \brief  Used to plug in callback function
-            Which notify channel may not be used with SAP or P2PGO mode.
-            Notification come from FW.
-    \param  hHal
-    \param  pCallbackfn : callback function pointer should be plugged in
-    \- return eHalStatus
-    -------------------------------------------------------------------------*/
-eHalStatus sme_AddChAvoidCallback
-(
-   tHalHandle hHal,
-   void (*pCallbackfn)(void *pAdapter, void *indParam)
-);
-#endif /* FEATURE_WLAN_CH_AVOID */
 #endif //#if !defined( __SME_API_H )

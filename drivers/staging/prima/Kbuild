@@ -11,9 +11,6 @@ ifeq ($(KERNEL_BUILD),1)
 	# Need to explicitly define for Kernel-based builds
 	MODNAME := wlan
 	WLAN_ROOT := drivers/staging/prima
-	#[LG] To apply most Built-In WX project (Instead of changing "xxx_defconfig" in kernel configs)
-	#Flag to enable TDLS feature
-	CONFIG_QCOM_TDLS := y
 endif
 
 ifeq ($(KERNEL_BUILD), 0)
@@ -44,8 +41,7 @@ ifeq ($(KERNEL_BUILD), 0)
 	endif
 
 	#Flag to enable new Linux Regulatory implementation
-        #Qualcomm default is y , LG change to "n" according to Qualcomm guide.
-	CONFIG_ENABLE_LINUX_REG := n 
+	CONFIG_ENABLE_LINUX_REG := y
 
 endif
 
@@ -62,7 +58,7 @@ BUILD_DEBUG_VERSION := 1
 BUILD_DIAG_VERSION := 1
 
 #Do we panic on bug?  default is to warn
-PANIC_ON_BUG := 0
+PANIC_ON_BUG := 1
 
 #Re-enable wifi on WDI timeout
 RE_ENABLE_WIFI_ON_WDI_TIMEOUT := 0
@@ -542,9 +538,7 @@ CDEFINES :=	-DANI_BUS_TYPE_PLATFORM=1 \
 		-DWLAN_WAKEUP_EVENTS \
 	        -DWLAN_KD_READY_NOTIFIER \
 		-DFEATURE_WLAN_BATCH_SCAN \
-		-DCUSTOMER_LGE \
-		-DFEATURE_WLAN_LPHB \
-		-DFEATURE_WLAN_CH144
+		-DFEATURE_WLAN_LPHB
 
 ifneq ($(CONFIG_PRONTO_WLAN),)
 CDEFINES += -DWCN_PRONTO
@@ -644,8 +638,6 @@ endif
 ifeq ($(CONFIG_ENABLE_LINUX_REG), y)
 CDEFINES += -DCONFIG_ENABLE_LINUX_REG
 endif
-
-CDEFINES += -DFEATURE_WLAN_CH_AVOID
 
 # Fix build for GCC 4.7
 EXTRA_CFLAGS += -Wno-maybe-uninitialized -Wno-unused-function

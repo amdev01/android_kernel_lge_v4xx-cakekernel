@@ -65,7 +65,7 @@
 #include <csrApi.h>
 
 //Number of items that can be configured
-#define MAX_CFG_INI_ITEMS   320
+#define MAX_CFG_INI_ITEMS   512
 
 // Defines for all of the things we read from the configuration (registry).
 
@@ -559,12 +559,12 @@ typedef enum
 #define CFG_ACTIVE_MAX_CHANNEL_TIME_NAME       "gActiveMaxChannelTime"
 #define CFG_ACTIVE_MAX_CHANNEL_TIME_MIN        ( 0 )
 #define CFG_ACTIVE_MAX_CHANNEL_TIME_MAX        ( 10000 )
-#define CFG_ACTIVE_MAX_CHANNEL_TIME_DEFAULT    ( 70 )
+#define CFG_ACTIVE_MAX_CHANNEL_TIME_DEFAULT    ( 40 )
 
 #define CFG_ACTIVE_MIN_CHANNEL_TIME_NAME       "gActiveMinChannelTime"
 #define CFG_ACTIVE_MIN_CHANNEL_TIME_MIN        ( 0 )
 #define CFG_ACTIVE_MIN_CHANNEL_TIME_MAX        ( 10000 )
-#define CFG_ACTIVE_MIN_CHANNEL_TIME_DEFAULT    ( 40 )
+#define CFG_ACTIVE_MIN_CHANNEL_TIME_DEFAULT    ( 20 )
 
 #define CFG_ACTIVE_MAX_CHANNEL_TIME_BTC_NAME       "gActiveMaxChannelTimeBtc"
 #define CFG_ACTIVE_MAX_CHANNEL_TIME_BTC_MIN        ( 0 )
@@ -611,12 +611,12 @@ typedef enum
 #define CFG_ACTIVE_MAX_CHANNEL_TIME_CONC_NAME       "gActiveMaxChannelTimeConc"
 #define CFG_ACTIVE_MAX_CHANNEL_TIME_CONC_MIN        ( 0 )
 #define CFG_ACTIVE_MAX_CHANNEL_TIME_CONC_MAX        ( 10000 )
-#define CFG_ACTIVE_MAX_CHANNEL_TIME_CONC_DEFAULT    ( 70 )
+#define CFG_ACTIVE_MAX_CHANNEL_TIME_CONC_DEFAULT    ( 40 )
 
 #define CFG_ACTIVE_MIN_CHANNEL_TIME_CONC_NAME       "gActiveMinChannelTimeConc"
 #define CFG_ACTIVE_MIN_CHANNEL_TIME_CONC_MIN        ( 0 )
 #define CFG_ACTIVE_MIN_CHANNEL_TIME_CONC_MAX        ( 10000 )
-#define CFG_ACTIVE_MIN_CHANNEL_TIME_CONC_DEFAULT    ( 40 )
+#define CFG_ACTIVE_MIN_CHANNEL_TIME_CONC_DEFAULT    ( 20 )
 
 #define CFG_REST_TIME_CONC_NAME                     "gRestTimeConc"
 #define CFG_REST_TIME_CONC_MIN                      ( 0 )
@@ -1405,7 +1405,7 @@ typedef enum
 #define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_NAME                "isP2pDeviceAddrAdministrated"
 #define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MIN                 ( 0 )
 #define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_MAX                 ( 1 )
-#define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_DEFAULT             ( 1 )
+#define CFG_P2P_DEVICE_ADDRESS_ADMINISTRATED_DEFAULT             ( 0 )
 
 
 #define CFG_ENABLE_SSR                      "gEnableSSR"
@@ -1644,15 +1644,6 @@ typedef enum
 #define CFG_ENABLE_RX_STBC_MIN                   ( 0 )
 #define CFG_ENABLE_RX_STBC_MAX                   ( 1 )
 #define CFG_ENABLE_RX_STBC_DEFAULT               ( 1 )
-
-/*                                                                  */
-#ifdef CUSTOMER_LGE
-#define CFG_OVERRIDE_COUNTRY_CODE				"gStaCountryCode"
-#define CFG_OVERRIDE_COUNTRY_CODE_MIN			"000"
-#define CFG_OVERRIDE_COUNTRY_CODE_MAX			"ZZZ"
-#define CFG_OVERRIDE_COUNTRY_CODE_DEFAULT		"000"
-#endif
-/*                                                                */
 
 /* 
  * Enable/Disable vsta based on MAX Assoc limit 
@@ -1960,14 +1951,6 @@ typedef enum
 #define CFG_BTC_SAP_ACTIVE_BT_LEN_MIN          ( 0 )
 #define CFG_BTC_SAP_ACTIVE_BT_LEN_MAX          ( 250000 )
 #define CFG_BTC_SAP_ACTIVE_BT_LEN_DEFAULT      ( 90000 )
-
-/* Prefer connecting to 5G AP even if its RSSI is lower by
- gSelect5GHzMargin dBm than 2.4G AP.
-This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
-#define CFG_STRICT_5GHZ_PREF_BY_MARGIN                 "gSelect5GHzMargin"
-#define CFG_STRICT_5GHZ_PREF_BY_MARGIN_MIN             (0)
-#define CFG_STRICT_5GHZ_PREF_BY_MARGIN_MAX             (60)
-#define CFG_STRICT_5GHZ_PREF_BY_MARGIN_DEFAULT         (0) //set 0 to disable
 
 /*--------------------------------------------------------------------------- 
   Type declarations
@@ -2307,11 +2290,6 @@ typedef struct
    v_U16_t                     configMccParam;
    v_U32_t                     numBuffAdvert;
    v_BOOL_t                    enableRxSTBC;
-/*                                                                  */
- #ifdef CUSTOMER_LGE
-   char                        overrideCountryCode[4];
-#endif
-/*                                                                */
 #ifdef FEATURE_WLAN_TDLS       
    v_BOOL_t                    fEnableTDLSSupport;
    v_BOOL_t                    fEnableTDLSImplicitTrigger;
@@ -2381,7 +2359,6 @@ typedef struct
    v_U32_t                     cfgBtcActiveBtLen;
    v_U32_t                     cfgBtcSapActiveWlanLen;
    v_U32_t                     cfgBtcSapActiveBtLen;
-   v_U8_t                      nSelect5GHzMargin;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

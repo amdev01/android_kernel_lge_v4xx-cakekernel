@@ -1,5 +1,5 @@
 /*
-  * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+  * Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
   *
   * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
   *
@@ -84,7 +84,6 @@
 #ifdef FEATURE_WLAN_TDLS
 #include "wlan_hdd_tdls.h"
 #include "wlan_hdd_wmm.h"
-#include "wlan_qct_wda.h"
 #endif
 #include "wlan_nv.h"
 #include "wlan_hdd_dev_pwr.h"
@@ -213,9 +212,6 @@ static struct ieee80211_channel hdd_channels_5_GHZ[] =
     HDD5GHZCHAN(5660,132, 0) ,
     HDD5GHZCHAN(5680,136, 0) ,
     HDD5GHZCHAN(5700,140, 0) ,
-#ifdef FEATURE_WLAN_CH144
-    HDD5GHZCHAN(5720,144, 0) ,
-#endif /* FEATURE_WLAN_CH144 */
     HDD5GHZCHAN(5745,149, 0) ,
     HDD5GHZCHAN(5765,153, 0) ,
     HDD5GHZCHAN(5785,157, 0) ,
@@ -672,11 +668,9 @@ int wlan_hdd_cfg80211_init(struct device *dev,
        || pCfg->isCcxIniFeatureEnabled
 #endif
     )
-#if 0  //                                                                                                                                 
     {
         wiphy->flags |= WIPHY_FLAG_SUPPORTS_FW_ROAM;
     }
-#endif
 #endif
 #ifdef FEATURE_WLAN_TDLS
     wiphy->flags |= WIPHY_FLAG_SUPPORTS_TDLS
@@ -1026,14 +1020,6 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
 
     if (!params->head && !old)
         return -EINVAL;
-
-/*                                                                                     */
-#if 0
-    if (params->tail && !params->tail_len)
-        return -EINVAL;
-#endif
-/*                                                                                     */
-
 
 #if (LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,38))
     /* Kernel 3.0 is not updating dtim_period for set beacon */
@@ -2787,8 +2773,14 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                     ndev->dev_addr[3] |= 0xF0;
                     memcpy(pAdapter->macAddressCurrent.bytes, ndev->dev_addr,
                            VOS_MAC_ADDR_SIZE);
-                    pr_info("wlan: Generated HotSpot BSSID " MAC_ADDRESS_STR"\n",
-                            MAC_ADDR_ARRAY(ndev->dev_addr));
+                    pr_info("wlan: Generated HotSpot BSSID "
+                            "%02x:%02x:%02x:%02x:%02x:%02x\n",
+                            ndev->dev_addr[0],
+                            ndev->dev_addr[1],
+                            ndev->dev_addr[2],
+                            ndev->dev_addr[3],
+                            ndev->dev_addr[4],
+                            ndev->dev_addr[5]);
                 }
 
                 hdd_set_ap_ops( pAdapter->dev );
@@ -2809,8 +2801,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                                       wlan_hdd_change_country_code_cb,
                                       pConfig->apCntryCode, pAdapter,
                                       pHddCtx->pvosContext,
-                                      eSIR_FALSE,
-                                      eSIR_TRUE);
+                                      VOS_FALSE);
                     if (eHAL_STATUS_SUCCESS == status)
                     {
                         /* Wait for completion */
@@ -4350,7 +4341,9 @@ void
 hddPrintMacAddr(tCsrBssid macAddr, tANI_U8 logLevel)
 {
     VOS_TRACE(VOS_MODULE_ID_HDD, logLevel,
-              MAC_ADDRESS_STR, MAC_ADDR_ARRAY(macAddr));
+              "%02X:%02X:%02X:%02X:%02X:%02X\n",
+              macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4],
+              macAddr[5]);
 } /****** end hddPrintMacAddr() ******/
 
 void
@@ -4580,9 +4573,10 @@ v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
                 {
                     staMac = (v_U8_t *) &(pAdapter->macAddressCurrent.bytes[0]);
                     hddLog(VOS_TRACE_LEVEL_ERROR,
-                           "%s: client " MAC_ADDRESS_STR
-                           " is in the middle of WPS/EAPOL exchange.", __func__,
-                            MAC_ADDR_ARRAY(staMac));
+                            "%s: client %02x:%02x:%02x:%02x:%02x:%02x is in the "
+                            "middle of WPS/EAPOL exchange.", __func__,
+                            staMac[0], staMac[1], staMac[2],
+                            staMac[3], staMac[4], staMac[5]);
                     return VOS_FALSE;
                 }
             }
@@ -4597,9 +4591,10 @@ v_BOOL_t hdd_isScanAllowed( hdd_context_t *pHddCtx )
                         staMac = (v_U8_t *) &(pAdapter->aStaInfo[staId].macAddrSTA.bytes[0]);
 
                         hddLog(VOS_TRACE_LEVEL_ERROR,
-                               "%s: client " MAC_ADDRESS_STR " of SoftAP/P2P-GO is in the "
-                               "middle of WPS/EAPOL exchange.", __func__,
-                                MAC_ADDR_ARRAY(staMac));
+                                "%s: client %02x:%02x:%02x:%02x:%02x:%02x of SoftAP/P2P-GO is in the "
+                                "middle of WPS/EAPOL exchange.", __func__,
+                                staMac[0], staMac[1], staMac[2],
+                                staMac[3], staMac[4], staMac[5]);
                         return VOS_FALSE;
                     }
                 }
@@ -7112,9 +7107,11 @@ static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                 {
                     u8 *macAddr = pAdapter->aStaInfo[i].macAddrSTA.bytes;
                     hddLog(VOS_TRACE_LEVEL_INFO,
-                           "%s: Delete STA with MAC::"
-                            MAC_ADDRESS_STR,
-                            __func__, MAC_ADDR_ARRAY(macAddr));
+                                        "%s: Delete STA with MAC::"
+                                        "%02x:%02x:%02x:%02x:%02x:%02x",
+                                        __func__,
+                                        macAddr[0], macAddr[1], macAddr[2],
+                                        macAddr[3], macAddr[4], macAddr[5]);
                     vos_status = hdd_softap_sta_deauth(pAdapter, macAddr);
                     if (VOS_IS_STATUS_SUCCESS(vos_status))
                         pAdapter->aStaInfo[i].isDeauthInProgress = TRUE;
@@ -7128,18 +7125,22 @@ static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
             if (!VOS_IS_STATUS_SUCCESS(vos_status))
             {
                 hddLog(VOS_TRACE_LEVEL_INFO,
-                       "%s: Skip this DEL STA as this is not used::"
-                       MAC_ADDRESS_STR,
-                       __func__, MAC_ADDR_ARRAY(mac));
+                                "%s: Skip this DEL STA as this is not used::"
+                                "%02x:%02x:%02x:%02x:%02x:%02x",
+                                __func__,
+                                mac[0], mac[1], mac[2],
+                                mac[3], mac[4], mac[5]);
                 return -ENOENT;
             }
 
             if( pAdapter->aStaInfo[staId].isDeauthInProgress == TRUE)
             {
                 hddLog(VOS_TRACE_LEVEL_INFO,
-                       "%s: Skip this DEL STA as deauth is in progress::"
-                       MAC_ADDRESS_STR,
-                       __func__, MAC_ADDR_ARRAY(mac));
+                                "%s: Skip this DEL STA as deauth is in progress::"
+                                "%02x:%02x:%02x:%02x:%02x:%02x",
+                                __func__,
+                                mac[0], mac[1], mac[2],
+                                mac[3], mac[4], mac[5]);
                 return -ENOENT;
             }
 
@@ -7147,9 +7148,10 @@ static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
 
             hddLog(VOS_TRACE_LEVEL_INFO,
                                 "%s: Delete STA with MAC::"
-                                MAC_ADDRESS_STR,
+                                "%02x:%02x:%02x:%02x:%02x:%02x",
                                 __func__,
-                                MAC_ADDR_ARRAY(mac));
+                                mac[0], mac[1], mac[2],
+                                mac[3], mac[4], mac[5]);
 
             vos_status = hdd_softap_sta_deauth(pAdapter, mac);
             if (!VOS_IS_STATUS_SUCCESS(vos_status))
@@ -7157,9 +7159,10 @@ static int wlan_hdd_cfg80211_del_station(struct wiphy *wiphy,
                 pAdapter->aStaInfo[staId].isDeauthInProgress = FALSE;
                 hddLog(VOS_TRACE_LEVEL_INFO,
                                 "%s: STA removal failed for ::"
-                                MAC_ADDRESS_STR,
+                                "%02x:%02x:%02x:%02x:%02x:%02x",
                                 __func__,
-                                MAC_ADDR_ARRAY(mac));
+                                mac[0], mac[1], mac[2],
+                                mac[3], mac[4], mac[5]);
                 return -ENOENT;
             }
 
@@ -7299,11 +7302,10 @@ static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *d
     tANI_U32 j=0;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle halHandle;
-    int status;
     tANI_U8  BSSIDMatched = 0;
     tANI_U8 *pBSSId;
     hdd_context_t *pHddCtx;
-    int result = 0;
+    int status = 0;
 
     hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: deleting PMKSA with PMKSA_ID %d .",
             __func__,pmksa->pmkid);
@@ -7368,11 +7370,12 @@ static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *d
              PMKIDCacheIndex--;
 
              /*delete the last PMKID cache in CSR*/
-             result = sme_RoamDelPMKIDfromCache(halHandle, pAdapter->sessionId, pBSSId);
-             if (0 != result)
+             if (eHAL_STATUS_SUCCESS !=
+                 sme_RoamDelPMKIDfromCache(halHandle, pAdapter->sessionId, pmksa->bssid))
              {
                 hddLog(VOS_TRACE_LEVEL_ERROR,"%s: cannot delete PMKSA %d CONTENT.",
                           __func__,PMKIDCacheIndex);
+                status = -EINVAL;
              }
 
              dump_bssid(pmksa->bssid);
@@ -7391,7 +7394,7 @@ static int wlan_hdd_cfg80211_del_pmksa(struct wiphy *wiphy, struct net_device *d
        dump_pmkid(halHandle, pmksa->pmkid);
        return -EINVAL;
     }
-   return result;
+   return status;
 }
 
 
@@ -7403,8 +7406,7 @@ static int wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device 
     tHalHandle halHandle;
     hdd_context_t *pHddCtx;
     tANI_U8 *pBSSId;
-    int status;
-    int result;
+    int status = 0;
 
     hddLog(VOS_TRACE_LEVEL_DEBUG, "%s: flushing PMKSA ",__func__);
 
@@ -7446,17 +7448,17 @@ static int wlan_hdd_cfg80211_flush_pmksa(struct wiphy *wiphy, struct net_device 
           vos_mem_zero(PMKIDCache[j].PMKID, CSR_RSN_PMKID_SIZE);
 
           /*delete the PMKID in CSR*/
-          result = sme_RoamDelPMKIDfromCache(halHandle, pAdapter->sessionId, pBSSId);
-
-          if (0!= result)
+          if (eHAL_STATUS_SUCCESS !=
+              sme_RoamDelPMKIDfromCache(halHandle, pAdapter->sessionId, pBSSId))
           {
              hddLog(VOS_TRACE_LEVEL_ERROR ,"%s cannot flush PMKIDCache %d.",
                     __func__,j);
+             status = -EINVAL;
           }
       }
 
     PMKIDCacheIndex = 0;
-    return result;
+    return status;
 }
 #endif
 
@@ -7873,15 +7875,9 @@ static int wlan_hdd_cfg80211_sched_scan_stop(struct wiphy *wiphy,
 
 
 #ifdef FEATURE_WLAN_TDLS
-#if TDLS_MGMT_VERSION2
 static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *dev,
                      u8 *peer, u8 action_code,  u8 dialog_token,
-                      u16 status_code, u32 peer_capability, const u8 *buf, size_t len)
-#else
-static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *dev,
-                     u8 *peer, u8 action_code,  u8 dialog_token,
-                     u16 status_code, const u8 *buf, size_t len)
-#endif
+                     u16 status_code, u32 peer_capability, const u8 *buf, size_t len)
 {
 
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
@@ -7891,9 +7887,6 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
     int max_sta_failed = 0;
     int responder;
     long rc;
-#if !(TDLS_MGMT_VERSION2)
-    u32 peer_capability = 0;
-#endif
 
     if (NULL == pHddCtx || NULL == pHddCtx->cfg_ini)
     {
@@ -8048,7 +8041,7 @@ static int wlan_hdd_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *d
     INIT_COMPLETION(pAdapter->tdls_mgmt_comp);
 
     status = sme_SendTdlsMgmtFrame(WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId,
-              peerMac, action_code, dialog_token, status_code, peer_capability, (tANI_U8 *)buf, len, responder);
+            peerMac, action_code, dialog_token, status_code, (tANI_U8 *)buf, len, responder);
 
     if (VOS_STATUS_SUCCESS != status)
     {
@@ -8181,30 +8174,26 @@ static int wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *d
                 if (eTDLS_LINK_CONNECTED != pTdlsPeer->link_status)
                 {
                     long ret;
-                    if (IS_ADVANCE_TDLS_ENABLE) {
 
-                        if (0 != wlan_hdd_tdls_get_link_establish_params(
-                                   pAdapter, peer,&tdlsLinkEstablishParams)) {
-                            return -EINVAL;
-                        }
-                        INIT_COMPLETION(pAdapter->tdls_link_establish_req_comp);
+                    if (0 != wlan_hdd_tdls_get_link_establish_params(pAdapter, peer,&tdlsLinkEstablishParams)) {
+                         return -EINVAL;
+                    }
+                    INIT_COMPLETION(pAdapter->tdls_link_establish_req_comp);
 
-                        sme_SendTdlsLinkEstablishParams(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                            pAdapter->sessionId, peer, &tdlsLinkEstablishParams);
-                        /* Send TDLS peer UAPSD capabilities to the firmware and
-                         * register with the TL on after the response for this operation
-                         * is received .
-                         */
-                        ret = wait_for_completion_interruptible_timeout(
-                                &pAdapter->tdls_link_establish_req_comp,
-                                msecs_to_jiffies(WAIT_TIME_TDLS_LINK_ESTABLISH_REQ));
-                        if (ret <= 0)
-                        {
-                            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                                      "%s: Link Establish Request Faled Status %ld",
-                                      __func__, ret);
-                            return -EINVAL;
-                        }
+                    sme_SendTdlsLinkEstablishParams(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                                    pAdapter->sessionId, peer, &tdlsLinkEstablishParams);
+                    /* Send TDLS peer UAPSD capabilities to the firmware and
+                     * register with the TL on after the response for this operation
+                     * is received .
+                     */
+                    ret = wait_for_completion_interruptible_timeout(&pAdapter->tdls_link_establish_req_comp,
+                              msecs_to_jiffies(WAIT_TIME_TDLS_LINK_ESTABLISH_REQ));
+                    if (ret <= 0)
+                    {
+                        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                                  "%s: Link Establish Request Faled Status %ld",
+                                  __func__, ret);
+                        return -EINVAL;
                     }
                     wlan_hdd_tdls_set_peer_link_status(pTdlsPeer, eTDLS_LINK_CONNECTED);
                     /* Mark TDLS client Authenticated .*/
@@ -8312,17 +8301,11 @@ static int wlan_hdd_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *d
 int wlan_hdd_cfg80211_send_tdls_discover_req(struct wiphy *wiphy,
                             struct net_device *dev, u8 *peer)
 {
-    hddLog(VOS_TRACE_LEVEL_INFO,
-           "tdls send discover req: "MAC_ADDRESS_STR,
-           MAC_ADDR_ARRAY(peer));
+    hddLog(VOS_TRACE_LEVEL_INFO, "tdls send discover req: %x %x %x %x %x %x",
+            peer[0], peer[1], peer[2], peer[3], peer[4], peer[5]);
 
-#if TDLS_MGMT_VERSION2
     return wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer,
                             WLAN_TDLS_DISCOVERY_REQUEST, 1, 0, 0, NULL, 0);
-#else
-    return wlan_hdd_cfg80211_tdls_mgmt(wiphy, dev, peer,
-                            WLAN_TDLS_DISCOVERY_REQUEST, 1, 0, NULL, 0);
-#endif
 }
 #endif
 

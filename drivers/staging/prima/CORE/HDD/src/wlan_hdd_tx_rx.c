@@ -1607,13 +1607,10 @@ void hdd_tx_rx_pkt_cnt_stat_timer_handler( void *phddctx)
                 hddLog(VOS_TRACE_LEVEL_INFO,
                         "%s: One of the interface is connected check for scan",
                         __func__);
-				/* CR661853 : Extend the logic to enable/disable the split scan for GO */
                 hddLog(VOS_TRACE_LEVEL_INFO,
-						"%s: pkt_tx_count: %d, pkt_rx_count: %d "
-						"miracast = %d", __func__,
-						pAdapter->hdd_stats.hddTxRxStats.pkt_tx_count,
-						pAdapter->hdd_stats.hddTxRxStats.pkt_rx_count,
-						pHddCtx->drvr_miracast);
+                       "%s: pkt_tx_count: %d, pkt_rx_count: %d", __func__,
+                                 pAdapter->hdd_stats.hddTxRxStats.pkt_tx_count,
+                                 pAdapter->hdd_stats.hddTxRxStats.pkt_rx_count);
 
                 vos_timer_start(&pHddCtx->tx_rx_trafficTmr,
                                  cfg_param->trafficMntrTmrForSplitScan);
@@ -1622,8 +1619,7 @@ void hdd_tx_rx_pkt_cnt_stat_timer_handler( void *phddctx)
                                        cfg_param->txRxThresholdForSplitScan) ||
                     (pAdapter->hdd_stats.hddTxRxStats.pkt_rx_count >
                                        cfg_param->txRxThresholdForSplitScan) ||
-                    pHddCtx->drvr_miracast ||
-                    (WLAN_HDD_P2P_GO == pAdapter->device_mode)) /* CR661853 : Extend the logic to enable/disable the split scan for GO */
+                    pHddCtx->drvr_miracast)
                 {
                     pAdapter->hdd_stats.hddTxRxStats.pkt_tx_count = 0;
                     pAdapter->hdd_stats.hddTxRxStats.pkt_rx_count = 0;

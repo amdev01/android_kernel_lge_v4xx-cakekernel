@@ -78,17 +78,13 @@ static v_REGDOMAIN_t cur_reg_domain = REGDOMAIN_COUNT;
 static char linux_reg_cc[2] = {0, 0};
 static v_REGDOMAIN_t temp_reg_domain = REGDOMAIN_COUNT;
 
-#else
-
-/* Cant access pAdapter in this file so defining a new variable to wait when changing country*/
-static struct completion change_country_code;
-
 #endif
 
 static char crda_alpha2[2] = {0, 0}; /* country code from initial crda req */
 static char run_time_alpha2[2] = {0, 0}; /* country code from none-default country req */
 static v_BOOL_t crda_regulatory_entry_valid = VOS_FALSE;
 static v_BOOL_t crda_regulatory_run_time_entry_valid = VOS_FALSE;
+
 
 
 /*----------------------------------------------------------------------------
@@ -177,7 +173,7 @@ static CountryInfoTable_t countryInfoTable =
       {REGDOMAIN_ETSI, {'D', 'E'}}, //GERMANY
       {REGDOMAIN_ETSI, {'D', 'K'}}, //DENMARK
       {REGDOMAIN_FCC, {'D', 'O'}}, //DOMINICAN REPUBLIC
-      {REGDOMAIN_ETSI, {'D', 'Z'}}, //       
+      {REGDOMAIN_ETSI, {'D', 'Z'}}, //ALGERIA
       {REGDOMAIN_ETSI, {'E', 'C'}}, //ECUADOR
       {REGDOMAIN_ETSI, {'E', 'E'}}, //ESTONIA
       {REGDOMAIN_ETSI, {'E', 'G'}}, //EGYPT
@@ -287,15 +283,15 @@ static CountryInfoTable_t countryInfoTable =
 // loaded on driver initialization if available
 static CountryInfoTable_t countryInfoTable =
 {
-    259,
+    254,
     {
         { REGDOMAIN_FCC,     {'U', 'S'}},  //USA - must be the first country code
         { REGDOMAIN_ETSI,    {'A', 'D'}},  //ANDORRA
-        { REGDOMAIN_WORLD,    {'A', 'E'}},  //UAE
-        { REGDOMAIN_WORLD, {'A', 'F'}},  //AFGHANISTAN
-        { REGDOMAIN_FCC,   {'A', 'G'}},  //ANTIGUA AND BARBUDA
+        { REGDOMAIN_ETSI,    {'A', 'E'}},  //UAE
+        { REGDOMAIN_N_AMER_EXC_FCC, {'A', 'F'}},  //AFGHANISTAN
+        { REGDOMAIN_WORLD,   {'A', 'G'}},  //ANTIGUA AND BARBUDA
         { REGDOMAIN_FCC,     {'A', 'I'}},  //ANGUILLA
-        { REGDOMAIN_ETSI, {'A', 'L'}},  //ALBANIA
+        { REGDOMAIN_ETSI,    {'A', 'L'}},  //ALBANIA
         { REGDOMAIN_N_AMER_EXC_FCC, {'A', 'M'}},  //ARMENIA
         { REGDOMAIN_ETSI,    {'A', 'N'}},  //NETHERLANDS ANTILLES
         { REGDOMAIN_NO_5GHZ, {'A', 'O'}},  //ANGOLA
@@ -303,13 +299,13 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD,   {'A', 'R'}},  //ARGENTINA
         { REGDOMAIN_FCC,     {'A', 'S'}},  //AMERICAN SOMOA
         { REGDOMAIN_ETSI,    {'A', 'T'}},  //AUSTRIA
-        { REGDOMAIN_WORLD,	 {'A', 'U'}},  //AUSTRALIA
+        { REGDOMAIN_WORLD,   {'A', 'U'}},  //AUSTRALIA
         { REGDOMAIN_ETSI,    {'A', 'W'}},  //ARUBA
         { REGDOMAIN_WORLD,   {'A', 'X'}},  //ALAND ISLANDS
         { REGDOMAIN_N_AMER_EXC_FCC, {'A', 'Z'}},  //AZERBAIJAN
         { REGDOMAIN_ETSI,    {'B', 'A'}},  //BOSNIA AND HERZEGOVINA
         { REGDOMAIN_APAC,    {'B', 'B'}},  //BARBADOS
-        { REGDOMAIN_NO_5GHZ, {'B', 'D'}},  //BANGLADESH
+        { REGDOMAIN_HI_5GHZ, {'B', 'D'}},  //BANGLADESH
         { REGDOMAIN_ETSI,    {'B', 'E'}},  //BELGIUM
         { REGDOMAIN_HI_5GHZ, {'B', 'F'}},  //BURKINA FASO
         { REGDOMAIN_ETSI,    {'B', 'G'}},  //BULGARIA
@@ -320,7 +316,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_APAC,    {'B', 'N'}},  //BRUNEI DARUSSALAM
         { REGDOMAIN_HI_5GHZ, {'B', 'O'}},  //BOLIVIA
         { REGDOMAIN_WORLD,   {'B', 'R'}},  //BRAZIL
-        { REGDOMAIN_WORLD,    {'B', 'S'}},  //BAHAMAS
+        { REGDOMAIN_APAC,    {'B', 'S'}},  //BAHAMAS
         { REGDOMAIN_NO_5GHZ, {'B', 'T'}},  //BHUTAN
         { REGDOMAIN_WORLD,   {'B', 'V'}},  //BOUVET ISLAND
         { REGDOMAIN_ETSI,    {'B', 'W'}},  //BOTSWANA
@@ -336,10 +332,10 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD,   {'C', 'K'}},  //COOK ISLANDS
         { REGDOMAIN_APAC,    {'C', 'L'}},  //CHILE
         { REGDOMAIN_NO_5GHZ, {'C', 'M'}},  //CAMEROON
-        { REGDOMAIN_HI_5GHZ, {'C', 'N'}},  //CHINA
-        { REGDOMAIN_WORLD,    {'C', 'O'}},  //COLOMBIA
-        { REGDOMAIN_WORLD,    {'C', 'R'}},  //COSTA RICA
-        { REGDOMAIN_WORLD, {'C', 'U'}},  //CUBA
+        { REGDOMAIN_APAC,    {'C', 'N'}},  //CHINA
+        { REGDOMAIN_APAC,    {'C', 'O'}},  //COLOMBIA
+        { REGDOMAIN_APAC,    {'C', 'R'}},  //COSTA RICA
+        { REGDOMAIN_NO_5GHZ, {'C', 'U'}},  //CUBA
         { REGDOMAIN_ETSI,    {'C', 'V'}},  //CAPE VERDE
         { REGDOMAIN_WORLD,   {'C', 'X'}},  //CHRISTMAS ISLAND
         { REGDOMAIN_ETSI,    {'C', 'Y'}},  //CYPRUS
@@ -348,9 +344,9 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_NO_5GHZ, {'D', 'J'}},  //DJIBOUTI
         { REGDOMAIN_ETSI,    {'D', 'K'}},  //DENMARK
         { REGDOMAIN_WORLD,   {'D', 'M'}},  //DOMINICA
-        { REGDOMAIN_WORLD,    {'D', 'O'}},  //DOMINICAN REPUBLIC
-        { REGDOMAIN_ETSI, {'D', 'Z'}},  //       
-        { REGDOMAIN_WORLD,    {'E', 'C'}},  //ECUADOR
+        { REGDOMAIN_APAC,    {'D', 'O'}},  //DOMINICAN REPUBLIC
+        { REGDOMAIN_ETSI,    {'D', 'Z'}},  //ALGERIA
+        { REGDOMAIN_APAC,    {'E', 'C'}},  //ECUADOR
         { REGDOMAIN_ETSI,    {'E', 'E'}},  //ESTONIA
         { REGDOMAIN_N_AMER_EXC_FCC, {'E', 'G'}},  //EGYPT
         { REGDOMAIN_WORLD,   {'E', 'H'}},  //WESTERN SAHARA
@@ -361,7 +357,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_ETSI,    {'F', 'I'}},  //FINLAND
         { REGDOMAIN_NO_5GHZ, {'F', 'J'}},  //FIJI
         { REGDOMAIN_WORLD,   {'F', 'K'}},  //FALKLAND ISLANDS (MALVINAS)
-        { REGDOMAIN_FCC,   {'F', 'M'}},  //MICRONESIA, FEDERATED STATES OF
+        { REGDOMAIN_WORLD,   {'F', 'M'}},  //MICRONESIA, FEDERATED STATES OF
         { REGDOMAIN_WORLD,   {'F', 'O'}},  //FAROE ISLANDS
         { REGDOMAIN_ETSI,    {'F', 'R'}},  //FRANCE
         { REGDOMAIN_NO_5GHZ, {'G', 'A'}},  //GABON
@@ -380,18 +376,18 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_ETSI,    {'G', 'R'}},  //GREECE
         { REGDOMAIN_WORLD,   {'G', 'S'}},  //SOUTH GEORGIA AND THE SOUTH SANDWICH ISLANDS
         { REGDOMAIN_APAC,    {'G', 'T'}},  //GUATEMALA
-        { REGDOMAIN_FCC,    {'G', 'U'}},  //GUAM
+        { REGDOMAIN_FCC,     {'G', 'U'}},  //GUAM
         { REGDOMAIN_NO_5GHZ, {'G', 'W'}},  //GUINEA-BISSAU
-        { REGDOMAIN_WORLD, {'G', 'Y'}},  //GUYANA
+        { REGDOMAIN_HI_5GHZ, {'G', 'Y'}},  //GUYANA
         { REGDOMAIN_WORLD,   {'H', 'K'}},  //HONGKONG
         { REGDOMAIN_WORLD,   {'H', 'M'}},  //HEARD ISLAND AND MCDONALD ISLANDS
         { REGDOMAIN_WORLD,   {'H', 'N'}},  //HONDURAS
         { REGDOMAIN_ETSI,    {'H', 'R'}},  //CROATIA
         { REGDOMAIN_ETSI,    {'H', 'T'}},  //HAITI
         { REGDOMAIN_ETSI,    {'H', 'U'}},  //HUNGARY
-        { REGDOMAIN_WORLD, {'I', 'D'}},  //INDONESIA
+        { REGDOMAIN_HI_5GHZ, {'I', 'D'}},  //INDONESIA
         { REGDOMAIN_ETSI,    {'I', 'E'}},  //IRELAND
-        { REGDOMAIN_N_AMER_EXC_FCC/*REGDOMAIN_NO_5GHZ*/, {'I', 'L'}},  //ISRAEL
+        { REGDOMAIN_N_AMER_EXC_FCC, {'I', 'L'}},  //ISRAEL
         { REGDOMAIN_WORLD,   {'I', 'M'}},  //ISLE OF MAN
         { REGDOMAIN_APAC,    {'I', 'N'}},  //INDIA
         { REGDOMAIN_WORLD,   {'I', 'O'}},  //BRITISH INDIAN OCEAN TERRITORY
@@ -406,13 +402,13 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_JAPAN,   {'J', '5'}},  //Japan alternate 5
         { REGDOMAIN_WORLD,   {'J', 'E'}},  //JERSEY
         { REGDOMAIN_WORLD,   {'J', 'M'}},  //JAMAICA
-        { REGDOMAIN_WORLD,   {'J', 'O'}},  //JORDAN
+        { REGDOMAIN_APAC,    {'J', 'O'}},  //JORDAN
         { REGDOMAIN_JAPAN,   {'J', 'P'}},  //JAPAN
         { REGDOMAIN_KOREA,   {'K', '1'}},  //Korea alternate 1
         { REGDOMAIN_KOREA,   {'K', '2'}},  //Korea alternate 2
         { REGDOMAIN_KOREA,   {'K', '3'}},  //Korea alternate 3
         { REGDOMAIN_KOREA,   {'K', '4'}},  //Korea alternate 4
-        { REGDOMAIN_HI_5GHZ, {'K', 'E'}},  //KENYA
+        { REGDOMAIN_APAC,    {'K', 'E'}},  //KENYA
         { REGDOMAIN_NO_5GHZ, {'K', 'G'}},  //KYRGYZSTAN
         { REGDOMAIN_ETSI,    {'K', 'H'}},  //CAMBODIA
         { REGDOMAIN_WORLD,   {'K', 'I'}},  //KIRIBATI
@@ -422,9 +418,9 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_KOREA,   {'K', 'R'}},  //KOREA, REPUBLIC OF
         { REGDOMAIN_N_AMER_EXC_FCC, {'K', 'W'}},  //KUWAIT
         { REGDOMAIN_FCC,     {'K', 'Y'}},  //CAYMAN ISLANDS
-        { REGDOMAIN_NO_5GHZ, {'K', 'Z'}},  //KAZAKHSTAN
-        { REGDOMAIN_KOREA,	 {'L', 'A'}},  //LAO PEOPLE'S DEMOCRATIC REPUBLIC
-        { REGDOMAIN_WORLD, {'L', 'B'}},  //LEBANON
+        { REGDOMAIN_WORLD,   {'K', 'Z'}},  //KAZAKHSTAN
+        { REGDOMAIN_WORLD,   {'L', 'A'}},  //LAO PEOPLE'S DEMOCRATIC REPUBLIC
+        { REGDOMAIN_WORLD,   {'L', 'B'}},  //LEBANON
         { REGDOMAIN_WORLD,   {'L', 'C'}},  //SAINT LUCIA
         { REGDOMAIN_ETSI,    {'L', 'I'}},  //LIECHTENSTEIN
         { REGDOMAIN_WORLD,   {'L', 'K'}},  //SRI LANKA
@@ -434,17 +430,17 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_ETSI,    {'L', 'U'}},  //LUXEMBOURG
         { REGDOMAIN_ETSI,    {'L', 'V'}},  //LATVIA
         { REGDOMAIN_NO_5GHZ, {'L', 'Y'}},  //LIBYAN ARAB JAMAHIRIYA
-        { REGDOMAIN_N_AMER_EXC_FCC, {'M', 'A'}},  //MOROCCO
-        { REGDOMAIN_N_AMER_EXC_FCC, {'M', 'C'}},  //MONACO
+        { REGDOMAIN_APAC,    {'M', 'A'}},  //MOROCCO
+        { REGDOMAIN_ETSI,    {'M', 'C'}},  //MONACO
         { REGDOMAIN_ETSI,    {'M', 'D'}},  //MOLDOVA, REPUBLIC OF
         { REGDOMAIN_ETSI,    {'M', 'E'}},  //MONTENEGRO
         { REGDOMAIN_NO_5GHZ, {'M', 'G'}},  //MADAGASCAR
         { REGDOMAIN_WORLD,   {'M', 'H'}},  //MARSHALL ISLANDS
         { REGDOMAIN_ETSI,    {'M', 'K'}},  //MACEDONIA, THE FORMER YUGOSLAV REPUBLIC OF
         { REGDOMAIN_NO_5GHZ, {'M', 'L'}},  //MALI
-        { REGDOMAIN_NO_5GHZ,   {'M', 'M'}},  //MYANMAR
-        { REGDOMAIN_NO_5GHZ, {'M', 'N'}},  //MONGOLIA
-        { REGDOMAIN_HI_5GHZ,    {'M', 'O'}},  //MACAO
+        { REGDOMAIN_WORLD,   {'M', 'M'}},  //MYANMAR
+        { REGDOMAIN_WORLD,   {'M', 'N'}},  //MONGOLIA
+        { REGDOMAIN_APAC,    {'M', 'O'}},  //MACAO
         { REGDOMAIN_FCC,     {'M', 'P'}},  //NORTHERN MARIANA ISLANDS
         { REGDOMAIN_ETSI,    {'M', 'Q'}},  //MARTINIQUE
         { REGDOMAIN_ETSI,    {'M', 'R'}},  //MAURITANIA
@@ -459,21 +455,21 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD,   {'N', 'A'}},  //NAMIBIA
         { REGDOMAIN_NO_5GHZ, {'N', 'C'}},  //NEW CALEDONIA
         { REGDOMAIN_WORLD,   {'N', 'E'}},  //NIGER
-        { REGDOMAIN_WORLD,   {'N', 'F'}},  //NORFOLD ISLAND        
+        { REGDOMAIN_WORLD,   {'N', 'F'}},  //NORFOLD ISLAND
         { REGDOMAIN_WORLD,   {'N', 'G'}},  //NIGERIA
         { REGDOMAIN_WORLD,   {'N', 'I'}},  //NICARAGUA
         { REGDOMAIN_ETSI,    {'N', 'L'}},  //NETHERLANDS
         { REGDOMAIN_ETSI,    {'N', 'O'}},  //NORWAY
-        { REGDOMAIN_WORLD, {'N', 'P'}},  //NEPAL
+        { REGDOMAIN_APAC,    {'N', 'P'}},  //NEPAL
         { REGDOMAIN_NO_5GHZ, {'N', 'R'}},  //NAURU
         { REGDOMAIN_WORLD,   {'N', 'U'}},  //NIUE
-        { REGDOMAIN_WORLD,    {'N', 'Z'}},  //NEW ZEALAND
-        { REGDOMAIN_WORLD,   {'O', 'M'}},  //OMAN
+        { REGDOMAIN_APAC,    {'N', 'Z'}},  //NEW ZEALAND
+        { REGDOMAIN_ETSI,    {'O', 'M'}},  //OMAN
         { REGDOMAIN_APAC,    {'P', 'A'}},  //PANAMA
-        { REGDOMAIN_WORLD, {'P', 'E'}},  //PERU
+        { REGDOMAIN_WORLD,   {'P', 'E'}},  //PERU
         { REGDOMAIN_ETSI,    {'P', 'F'}},  //FRENCH POLYNESIA
-        { REGDOMAIN_APAC,    {'P', 'G'}},  //PAPUA NEW GUINEA
-        { REGDOMAIN_WORLD, {'P', 'H'}},  //PHILIPPINES
+        { REGDOMAIN_WORLD,   {'P', 'G'}},  //PAPUA NEW GUINEA
+        { REGDOMAIN_WORLD,   {'P', 'H'}},  //PHILIPPINES
         { REGDOMAIN_HI_5GHZ, {'P', 'K'}},  //PAKISTAN
         { REGDOMAIN_ETSI,    {'P', 'L'}},  //POLAND
         { REGDOMAIN_WORLD,   {'P', 'M'}},  //SAINT PIERRE AND MIQUELON
@@ -487,24 +483,24 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_ETSI,    {'R', 'E'}},  //REUNION
         { REGDOMAIN_ETSI,    {'R', 'O'}},  //ROMANIA
         { REGDOMAIN_ETSI,    {'R', 'S'}},  //SERBIA
-        { REGDOMAIN_WORLD,    {'R', 'U'}},  //RUSSIA
-        { REGDOMAIN_HI_5GHZ, {'R', 'W'}},  //RWANDA
-        { REGDOMAIN_WORLD,	 {'S', 'A'}},  //SAUDI ARABIA
+        { REGDOMAIN_APAC,    {'R', 'U'}},  //RUSSIA
+        { REGDOMAIN_WORLD,   {'R', 'W'}},  //RWANDA
+        { REGDOMAIN_WORLD,   {'S', 'A'}},  //SAUDI ARABIA
         { REGDOMAIN_NO_5GHZ, {'S', 'B'}},  //SOLOMON ISLANDS
         { REGDOMAIN_NO_5GHZ, {'S', 'C'}},  //SEYCHELLES
         { REGDOMAIN_WORLD,   {'S', 'D'}},  //SUDAN
         { REGDOMAIN_ETSI,    {'S', 'E'}},  //SWEDEN
-        { REGDOMAIN_WORLD,    {'S', 'G'}},  //SINGAPORE
+        { REGDOMAIN_APAC,    {'S', 'G'}},  //SINGAPORE
         { REGDOMAIN_WORLD,   {'S', 'H'}},  //SAINT HELENA
         { REGDOMAIN_ETSI,    {'S', 'I'}},  //SLOVENNIA
         { REGDOMAIN_WORLD,   {'S', 'J'}},  //SVALBARD AND JAN MAYEN
         { REGDOMAIN_ETSI,    {'S', 'K'}},  //SLOVAKIA
-        { REGDOMAIN_NO_5GHZ/*REGDOMAIN_WORLD*/,   {'S', 'L'}},  //SIERRA LEONE
+        { REGDOMAIN_WORLD,   {'S', 'L'}},  //SIERRA LEONE
         { REGDOMAIN_ETSI,    {'S', 'M'}},  //SAN MARINO
         { REGDOMAIN_ETSI,    {'S', 'N'}},  //SENEGAL
         { REGDOMAIN_NO_5GHZ, {'S', 'O'}},  //SOMALIA
         { REGDOMAIN_NO_5GHZ, {'S', 'R'}},  //SURINAME
-        { REGDOMAIN_NO_5GHZ/*REGDOMAIN_WORLD*/,   {'S', 'T'}},  //SAO TOME AND PRINCIPE
+        { REGDOMAIN_WORLD,   {'S', 'T'}},  //SAO TOME AND PRINCIPE
         { REGDOMAIN_APAC,    {'S', 'V'}},  //EL SALVADOR
         { REGDOMAIN_NO_5GHZ, {'S', 'Y'}},  //SYRIAN ARAB REPUBLIC
         { REGDOMAIN_NO_5GHZ, {'S', 'Z'}},  //SWAZILAND
@@ -519,35 +515,30 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_NO_5GHZ, {'T', 'M'}},  //TURKMENISTAN
         { REGDOMAIN_N_AMER_EXC_FCC, {'T', 'N'}},  //TUNISIA
         { REGDOMAIN_NO_5GHZ, {'T', 'O'}},  //TONGA
-        { REGDOMAIN_N_AMER_EXC_FCC, {'T', 'R'}},  //TURKEY
+        { REGDOMAIN_ETSI,    {'T', 'R'}},  //TURKEY
         { REGDOMAIN_WORLD,   {'T', 'T'}},  //TRINIDAD AND TOBAGO
         { REGDOMAIN_NO_5GHZ, {'T', 'V'}},  //TUVALU
-        { REGDOMAIN_WORLD,   {'T', 'W'}},  //TAIWAN, PROVINCE OF CHINA
+        { REGDOMAIN_FCC,     {'T', 'W'}},  //TAIWAN, PROVINCE OF CHINA
         { REGDOMAIN_HI_5GHZ, {'T', 'Z'}},  //TANZANIA, UNITED REPUBLIC OF
-        { REGDOMAIN_WORLD, {'U', 'A'}},  //UKRAINE
-        { REGDOMAIN_WORLD,   {'U', 'G'}},  //UGANDA
+        { REGDOMAIN_WORLD,   {'U', 'A'}},  //UKRAINE
+        { REGDOMAIN_KOREA,   {'U', 'G'}},  //UGANDA
         { REGDOMAIN_FCC,     {'U', 'M'}},  //UNITED STATES MINOR OUTLYING ISLANDS
         { REGDOMAIN_WORLD,   {'U', 'Y'}},  //URUGUAY
-        { REGDOMAIN_WORLD,   {'U', 'Z'}},  //UZBEKISTAN
+        { REGDOMAIN_FCC,     {'U', 'Z'}},  //UZBEKISTAN
         { REGDOMAIN_ETSI,    {'V', 'A'}},  //HOLY SEE (VATICAN CITY STATE)
         { REGDOMAIN_WORLD,   {'V', 'C'}},  //SAINT VINCENT AND THE GRENADINES
-        { REGDOMAIN_APAC, {'V', 'E'}},  //VENEZUELA
+        { REGDOMAIN_HI_5GHZ, {'V', 'E'}},  //VENEZUELA
         { REGDOMAIN_ETSI,    {'V', 'G'}},  //VIRGIN ISLANDS, BRITISH
         { REGDOMAIN_FCC,     {'V', 'I'}},  //VIRGIN ISLANDS, US
-        { REGDOMAIN_WORLD, {'V', 'N'}},  //VIET NAM 
+        { REGDOMAIN_FCC,     {'V', 'N'}},  //VIET NAM
         { REGDOMAIN_NO_5GHZ, {'V', 'U'}},  //VANUATU
         { REGDOMAIN_WORLD,   {'W', 'F'}},  //WALLIS AND FUTUNA
-        { REGDOMAIN_WORLD, {'W', 'S'}},  //SOMOA
+        { REGDOMAIN_N_AMER_EXC_FCC, {'W', 'S'}},  //SOMOA
         { REGDOMAIN_NO_5GHZ, {'Y', 'E'}},  //YEMEN
         { REGDOMAIN_ETSI,    {'Y', 'T'}},  //MAYOTTE
         { REGDOMAIN_WORLD,   {'Z', 'A'}},  //SOUTH AFRICA
         { REGDOMAIN_APAC,    {'Z', 'M'}},  //ZAMBIA
-        { REGDOMAIN_ETSI, {'Z', 'W'}},  //ZIMBABWE
-        { REGDOMAIN_WORLD , {'A', 'U'}},  //AUSTRALIA
-        { REGDOMAIN_KOREA , {'L', 'A'}},  //LAO
-        { REGDOMAIN_WORLD , {'N', 'P'}},  //NEPAL
-        { REGDOMAIN_WORLD , {'S', 'A'}},  //SOUDI
-        { REGDOMAIN_WORLD , {'W', 'S'}},  //SOMOA
+        { REGDOMAIN_ETSI,    {'Z', 'W'}},  //ZIMBABWE
     }
 };
 
@@ -568,16 +559,6 @@ static v_U8_t *pEncodedBuf;
 static v_SIZE_t nvReadEncodeBufSize;
 static v_SIZE_t nDictionarySize;
 static v_U32_t magicNumber;
-
-/* NV2 specific, No CH 144 support
- * For NV_FTM operation, NV2 structure should be maintained
- * This will be used only for the NV_FTM operation */
-typedef struct nvEFSTableV2_s
-{
-   v_U32_t    nvValidityBitmap;
-   sHalNvV2   halnvV2;
-} nvEFSTableV2_t;
-nvEFSTableV2_t *gnvEFSTableV2;
 
 const tRfChannelProps rfChannels[NUM_RF_CHANNELS] =
 {
@@ -623,9 +604,6 @@ const tRfChannelProps rfChannels[NUM_RF_CHANNELS] =
     { 5660, 132, RF_SUBBAND_5_MID_GHZ},      //RF_CHAN_132,
     { 5680, 136, RF_SUBBAND_5_MID_GHZ},      //RF_CHAN_136,
     { 5700, 140, RF_SUBBAND_5_MID_GHZ},      //RF_CHAN_140,
-#ifdef FEATURE_WLAN_CH144
-    { 5720, 144, RF_SUBBAND_5_MID_GHZ},      //RF_CHAN_144,
-#endif /* FEATURE_WLAN_CH144 */
     { 5745, 149, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_149,
     { 5765, 153, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_153,
     { 5785, 157, RF_SUBBAND_5_HIGH_GHZ},     //RF_CHAN_157,
@@ -662,9 +640,6 @@ const tRfChannelProps rfChannels[NUM_RF_CHANNELS] =
     { 5650, 130, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_130,
     { 5670, 134, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_134,
     { 5690, 138, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_138,
-#ifdef FEATURE_WLAN_CH144
-    { 5730, 142, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_142,
-#endif /* FEATURE_WLAN_CH144 */
     { 5755, 151, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_151,
     { 5775, 155, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_155,
     { 5795, 159, NUM_RF_SUBBANDS},           //RF_CHAN_BOND_159,
@@ -750,347 +725,6 @@ fail:
    return vosStatus;
 }
 
-/**------------------------------------------------------------------------
-  \brief vos_nv_parseV2bin() - Parse NV2 binary
-         Parse NV2 BIN, and assign contents to common NV structure.
-  \param pnvEncodedBuf
-         NV Bin read buffer
-  \param nvReadBufSize
-         NV Bin read size
-  \param halNv
-         common NV structure storage pointer
-  \return VOS_STATUS_SUCCESS - module is initialized successfully
-          otherwise  - module is not initialized
-  \sa
-  -------------------------------------------------------------------------*/
-VOS_STATUS vos_nv_parseV2bin(tANI_U8 *pnvEncodedBuf, tANI_U32 nvReadBufSize,
-   sHalNv *halNv)
-{
-   sHalNvV2 *nv2Table;
-   tANI_U16 copyLoop;
-   tANI_U16 channelLoop;
-   void *targetPtr;
-   void *sourcePtr;
-
-   v_U32_t structSize = 0;
-
-   nv2Table = (sHalNvV2 *)pnvEncodedBuf;
-   /* NV Field Default Copy */
-   vos_mem_copy((char *)&halNv->fields,
-                (char *)&nv2Table->fields,
-                sizeof(sNvFields));
-   structSize += sizeof(sNvFields);
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(sNvFields) %zu, structSize %d",
-              __func__, sizeof(sNvFields), structSize);
-
-   /* NV Table, tRateGroupPwr, NOT depends on channel count */
-   vos_mem_copy((char *)halNv->tables.pwrOptimum,
-                (char *)nv2Table->tables.pwrOptimum,
-                sizeof(halNv->tables.pwrOptimum));
-   structSize += sizeof(halNv->tables.pwrOptimum);
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(halNv->tables.pwrOptimum) %zu, structSize %d",
-              __func__, sizeof(halNv->tables.pwrOptimum), structSize);
-
-   /* NV Table, regDomains, edepends on channel count */
-   for (copyLoop = 0; copyLoop < NUM_REG_DOMAINS; copyLoop++)
-   {
-      vos_mem_copy((char *)halNv->tables.regDomains[copyLoop].antennaGain,
-             (char *)nv2Table->tables.regDomains[copyLoop].antennaGain,
-             sizeof(halNv->tables.regDomains[copyLoop].antennaGain));
-      structSize += sizeof(halNv->tables.regDomains[copyLoop].antennaGain);
-
-      vos_mem_copy((char *)halNv->tables.regDomains[copyLoop].bRatePowerOffset,
-             (char *)nv2Table->tables.regDomains[copyLoop].bRatePowerOffset,
-             sizeof(halNv->tables.regDomains[copyLoop].bRatePowerOffset));
-      structSize += sizeof(halNv->tables.regDomains[copyLoop].bRatePowerOffset);
-   }
-
-   for (copyLoop = 0; copyLoop < NUM_REG_DOMAINS; copyLoop++)
-   {
-      targetPtr = (char *)&(halNv->tables.regDomains[copyLoop].channels[0]);
-      sourcePtr = (char *)&(nv2Table->tables.regDomains[copyLoop].channels[0]);
-      /* Cannot blindly copy
-       * Each single CH should be assigned */
-      for (channelLoop = 0; channelLoop < NUM_RF_CHANNELS; channelLoop++)
-      {
-#ifdef FEATURE_WLAN_CH144
-         if ((RF_CHAN_144 == channelLoop) || (RF_CHAN_BOND_142 == channelLoop))
-         {
-            /* NV2 CH144 is disabled */
-            halNv->tables.regDomains[copyLoop].channels[channelLoop].enabled =
-                                    NV_CHANNEL_DISABLE;
-            targetPtr = targetPtr + sizeof(sRegulatoryChannel);
-         }
-         else
-#endif /* FEATURE_WLAN_CH144 */
-         {
-
-            vos_mem_copy(targetPtr, sourcePtr, sizeof(sRegulatoryChannel));
-            targetPtr = targetPtr + sizeof(sRegulatoryChannel);
-            sourcePtr = sourcePtr + sizeof(sRegulatoryChannel);
-            structSize += sizeof(halNv->tables.regDomains[copyLoop].antennaGain);
-         }
-      }
-   }
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(halNv->tables.regDomains[copyLoop].antennaGain) %zu, structSize %d",
-              __func__, sizeof(halNv->tables.regDomains[copyLoop].antennaGain), structSize);
-
-   for (copyLoop = 0; copyLoop < NUM_REG_DOMAINS; copyLoop++)
-   {
-      targetPtr = (char *)&(halNv->tables.regDomains[copyLoop].gnRatePowerOffset[0]);
-      sourcePtr = (char *)&(nv2Table->tables.regDomains[copyLoop].gnRatePowerOffset[0]);
-      /* Cannot blindly copy
-       * Each single CH should be assigned */
-      for (channelLoop = 0; channelLoop < NUM_RF_CHANNELS; channelLoop++)
-      {
-#ifdef FEATURE_WLAN_CH144
-         if ((RF_CHAN_144 == channelLoop) || (RF_CHAN_BOND_142 == channelLoop))
-         {
-            targetPtr = targetPtr + sizeof(uAbsPwrPrecision);
-         }
-         else
-#endif /* FEATURE_WLAN_CH144 */
-         {
-            vos_mem_copy(targetPtr, sourcePtr, sizeof(uAbsPwrPrecision));
-            targetPtr = targetPtr + sizeof(uAbsPwrPrecision);
-            sourcePtr = sourcePtr + sizeof(uAbsPwrPrecision);
-            structSize += sizeof(sizeof(uAbsPwrPrecision));
-         }
-      }
-   }
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(uAbsPwrPrecision) %zu, structSize %d",
-              __func__, sizeof(uAbsPwrPrecision), structSize);
-
-   /* nvTable, defaultCountryTable, NOT depends on channel counts */
-   vos_mem_copy((char *)&halNv->tables.defaultCountryTable,
-          (char *)&nv2Table->tables.defaultCountryTable,
-          sizeof(halNv->tables.defaultCountryTable));
-   structSize += sizeof(halNv->tables.defaultCountryTable);
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(halNv->tables.defaultCountryTable) %zu, structSize %d",
-              __func__, sizeof(halNv->tables.defaultCountryTable), structSize);
-
-   /* NV Table, plutCharacterized, depends on channel count
-    * Cannot blindly copy
-    * Each single CH should be assigned */
-   targetPtr = (char *)&(halNv->tables.plutCharacterized[0]);
-   sourcePtr = (char *)&(nv2Table->tables.plutCharacterized[0]);
-   for (channelLoop = 0; channelLoop < NUM_RF_CHANNELS; channelLoop++)
-   {
-#ifdef FEATURE_WLAN_CH144
-      if ((RF_CHAN_144 == channelLoop) || (RF_CHAN_BOND_142 == channelLoop))
-      {
-         targetPtr = targetPtr + sizeof(tTpcPowerTable);
-      }
-      else
-#endif /* FEATURE_WLAN_CH144 */
-      {
-         vos_mem_copy(targetPtr, sourcePtr, sizeof(tTpcPowerTable));
-         targetPtr = targetPtr + sizeof(tTpcPowerTable);
-         sourcePtr = sourcePtr + sizeof(tTpcPowerTable);
-         structSize += sizeof(tTpcPowerTable);
-      }
-   }
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(tTpcPowerTable) %zu, structSize %d",
-              __func__, sizeof(tTpcPowerTable), structSize);
-
-   /* NV Table, plutPdadcOffset, depends on channel count
-    * Cannot blindly copy
-    * Each single CH should be assigned */
-   targetPtr = (char *)&(halNv->tables.plutPdadcOffset[0]);
-   sourcePtr = (char *)&(nv2Table->tables.plutPdadcOffset[0]);
-   for (channelLoop = 0; channelLoop < NUM_RF_CHANNELS; channelLoop++)
-   {
-#ifdef FEATURE_WLAN_CH144
-      if ((RF_CHAN_144 == channelLoop) || (RF_CHAN_BOND_142 == channelLoop))
-      {
-         targetPtr = targetPtr + sizeof(int16);
-      }
-      else
-#endif /* FEATURE_WLAN_CH144 */
-      {
-         vos_mem_copy(targetPtr, sourcePtr, sizeof(int16));
-         targetPtr = targetPtr + sizeof(int16);
-         sourcePtr = sourcePtr + sizeof(int16);
-         structSize += sizeof(int16);
-      }
-   }
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(halNv->tables.plutPdadcOffset) %zu, structSize %d",
-              __func__, sizeof(int16), structSize);
-
-   /* NV Table, pwrOptimum_virtualRate, NOT depends on channel count */
-   vos_mem_copy((char *)halNv->tables.pwrOptimum_virtualRate,
-          (char *)nv2Table->tables.pwrOptimum_virtualRate,
-          sizeof(halNv->tables.pwrOptimum_virtualRate));
-   structSize += sizeof(halNv->tables.pwrOptimum_virtualRate);
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(halNv->tables.pwrOptimum_virtualRate) %zu, structSize %d",
-              __func__, sizeof(halNv->tables.pwrOptimum_virtualRate), structSize);
-
-   /* NV Table, fwConfig, NOT depends on channel count */
-   vos_mem_copy((char *)&halNv->tables.fwConfig,
-          (char *)&nv2Table->tables.fwConfig,
-          sizeof(halNv->tables.fwConfig));
-   structSize += sizeof(halNv->tables.fwConfig);
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(halNv->tables.fwConfig) %zu, structSize %d",
-              __func__, sizeof(halNv->tables.fwConfig), structSize);
-
-   /* NV Table, rssiChanOffsets, depends on channel count
-    * Cannot blindly copy
-    * Each single CH should be assigned */
-   for (copyLoop = 0; copyLoop < 2; copyLoop++)
-   {
-      targetPtr = (char *)&(halNv->tables.rssiChanOffsets[copyLoop].bRssiOffset[0]);
-      sourcePtr = (char *)&(nv2Table->tables.rssiChanOffsets[copyLoop].bRssiOffset[0]);
-      /* Cannot blindly copy
-       * Each single CH should be assigned */
-      for (channelLoop = 0; channelLoop < NUM_RF_CHANNELS; channelLoop++)
-      {
-#ifdef FEATURE_WLAN_CH144
-         if ((RF_CHAN_144 == channelLoop) || (RF_CHAN_BOND_142 == channelLoop))
-         {
-            targetPtr = targetPtr + sizeof(int16);
-         }
-         else
-#endif /* FEATURE_WLAN_CH144 */
-         {
-            vos_mem_copy(targetPtr, sourcePtr, sizeof(int16));
-            targetPtr = targetPtr + sizeof(int16);
-            sourcePtr = sourcePtr + sizeof(int16);
-            structSize += sizeof(int16);
-         }
-      }
-   }
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(tables.rssiChanOffsets) %zu, structSize %d",
-              __func__, sizeof(int16), structSize);
-
-   for (copyLoop = 0; copyLoop < 2; copyLoop++)
-   {
-      targetPtr = (char *)&(halNv->tables.rssiChanOffsets[copyLoop].gnRssiOffset[0]);
-      sourcePtr = (char *)&(nv2Table->tables.rssiChanOffsets[copyLoop].gnRssiOffset[0]);
-      /* Cannot blindly copy
-       * Each single CH should be assigned */
-      for (channelLoop = 0; channelLoop < NUM_RF_CHANNELS; channelLoop++)
-      {
-#ifdef FEATURE_WLAN_CH144
-         if ((RF_CHAN_144 == channelLoop) || (RF_CHAN_BOND_142 == channelLoop))
-         {
-            targetPtr = targetPtr + sizeof(int16);
-         }
-         else
-#endif /* FEATURE_WLAN_CH144 */
-         {
-            vos_mem_copy(targetPtr, sourcePtr, sizeof(int16));
-            targetPtr = targetPtr + sizeof(int16);
-            sourcePtr = sourcePtr + sizeof(int16);
-            structSize += sizeof(int16);
-         }
-      }
-   }
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(tables.rssiChanOffsets) %zu, structSize %d",
-              __func__, sizeof(int16), structSize);
-
-   /* NV Table, hwCalValues, NOT depends on channel count */
-   vos_mem_copy((char *)&halNv->tables.hwCalValues,
-          (char *)&nv2Table->tables.hwCalValues,
-          sizeof(halNv->tables.hwCalValues));
-   structSize += sizeof(halNv->tables.fwConfig);
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(halNv->tables.hwCalValues) %zu, structSize %d",
-              __func__, sizeof(halNv->tables.hwCalValues), structSize);
-
-   /* NV Table, antennaPathLoss, depends on channel count
-    * Cannot blindly copy
-    * Each single CH should be assigned */
-   targetPtr = (char *)&(halNv->tables.antennaPathLoss[0]);
-   sourcePtr = (char *)&(nv2Table->tables.antennaPathLoss[0]);
-   for (channelLoop = 0; channelLoop < NUM_RF_CHANNELS; channelLoop++)
-   {
-#ifdef FEATURE_WLAN_CH144
-      if ((RF_CHAN_144 == channelLoop) || (RF_CHAN_BOND_142 == channelLoop))
-      {
-         targetPtr = targetPtr + sizeof(int16);
-      }
-      else
-#endif /* FEATURE_WLAN_CH144 */
-      {
-         vos_mem_copy(targetPtr, sourcePtr, sizeof(int16));
-         targetPtr = targetPtr + sizeof(int16);
-         sourcePtr = sourcePtr + sizeof(int16);
-         structSize += sizeof(int16);
-      }
-   }
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(halNv->tables.antennaPathLoss) %zu, structSize %d",
-              __func__, sizeof(int16), structSize);
-
-   /* NV Table, pktTypePwrLimits, depends on channel count
-    * Cannot blindly copy
-    * Each single CH should be assigned */
-   for (copyLoop = 0; copyLoop < NUM_802_11_MODES; copyLoop++)
-   {
-      targetPtr = (char *)&(halNv->tables.pktTypePwrLimits[copyLoop][0]);
-      sourcePtr = (char *)&(nv2Table->tables.pktTypePwrLimits[copyLoop][0]);
-      /* Cannot blindly copy
-       * Each single CH should be assigned */
-      for (channelLoop = 0; channelLoop < NUM_RF_CHANNELS; channelLoop++)
-      {
-#ifdef FEATURE_WLAN_CH144
-         if ((RF_CHAN_144 == channelLoop) || (RF_CHAN_BOND_142 == channelLoop))
-         {
-            targetPtr = targetPtr + sizeof(int16);
-         }
-         else
-#endif /* FEATURE_WLAN_CH144 */
-         {
-            vos_mem_copy(targetPtr, sourcePtr, sizeof(int16));
-            targetPtr = targetPtr + sizeof(int16);
-            sourcePtr = sourcePtr + sizeof(int16);
-            structSize += sizeof(int16);
-         }
-      }
-   }
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(halNv->tables.pktTypePwrLimits) %zu, structSize %d",
-              __func__, sizeof(int16), structSize);
-
-   /* NV Table, ofdmCmdPwrOffset, NOT depends on channel count */
-   vos_mem_copy((char *)&halNv->tables.ofdmCmdPwrOffset,
-          (char *)&nv2Table->tables.ofdmCmdPwrOffset,
-          sizeof(halNv->tables.ofdmCmdPwrOffset));
-   structSize += sizeof(halNv->tables.ofdmCmdPwrOffset);
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(halNv->tables.ofdmCmdPwrOffset) %zu, structSize %d",
-              __func__, sizeof(halNv->tables.ofdmCmdPwrOffset), structSize);
-
-   /* NV Table, txbbFilterMode, NOT depends on channel count */
-   vos_mem_copy((char *)&halNv->tables.txbbFilterMode,
-          (char *)&nv2Table->tables.txbbFilterMode,
-          sizeof(halNv->tables.txbbFilterMode));
-   structSize += sizeof(halNv->tables.ofdmCmdPwrOffset);
-   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: sizeof(halNv->tables.txbbFilterMode) %zu, structSize %d",
-              __func__, sizeof(halNv->tables.txbbFilterMode), structSize);
-
-   return VOS_STATUS_SUCCESS;
-}
-
-/**------------------------------------------------------------------------
-  \brief vos_nv_open() - Open NV operation
-         Read NV bin file and prepare NV common structure
-  \return VOS_STATUS_SUCCESS - module is initialized successfully
-          otherwise  - module is not initialized
-  \sa
-  -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_open(void)
 {
     VOS_STATUS status = VOS_STATUS_SUCCESS;
@@ -1098,11 +732,6 @@ VOS_STATUS vos_nv_open(void)
     v_SIZE_t bufSize;
     v_SIZE_t nvReadBufSize;
     v_BOOL_t itemIsValid = VOS_FALSE;
-/*                                                                  */
-#ifdef CUSTOMER_LGE
-    hdd_context_t *pHddCtx = NULL;
-#endif
-/*                                                                */
     v_U32_t dataOffset;
     sHalNv *pnvData = NULL;
 
@@ -1114,6 +743,7 @@ VOS_STATUS vos_nv_open(void)
         return (eHAL_STATUS_FAILURE);
     }
 
+    bufSize = sizeof(nvEFSTable_t);
     status = hdd_request_firmware(WLAN_NV_FILE,
                                   ((VosContextType*)(pVosContext))->pHDDContext,
                                   (v_VOID_t**)&pnvEncodedBuf, &nvReadBufSize);
@@ -1138,24 +768,10 @@ VOS_STATUS vos_nv_open(void)
         return VOS_STATUS_E_NOMEM;
     }
 
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-              "NV Table Size %zu", sizeof(nvEFSTable_t));
+    gnvEFSTable = (nvEFSTable_t*)pnvEncodedBuf;
 
-    pnvEFSTable = (nvEFSTable_t *)vos_mem_malloc(sizeof(nvEFSTable_t));
-    if (NULL == pnvEFSTable)
-    {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                  "%s : failed to allocate memory for NV", __func__);
-        return VOS_STATUS_E_NOMEM;
-    }
-    vos_mem_zero((void *)pnvEFSTable, sizeof(nvEFSTable_t));
-
-    // Default NV version, NOT_VALID
-    ((VosContextType*)(pVosContext))->nvVersion = E_NV_INVALID;
     if (MAGIC_NUMBER == magicNumber)
     {
-        bufSize = sizeof(nvEFSTable_t);
-        gnvEFSTable = (nvEFSTable_t*)pnvEncodedBuf;
         pnvData = (sHalNv *)vos_mem_malloc(sizeof(sHalNv));
 
         if (NULL == pnvData)
@@ -1179,7 +795,7 @@ VOS_STATUS vos_nv_open(void)
         vos_mem_copy(pEncodedBuf, &pnvEncodedBuf[sizeof(v_U32_t)],
             nvReadEncodeBufSize);
 
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                    "readEncodeBufSize %d",nvReadEncodeBufSize);
 
         if (VOS_STATUS_SUCCESS == status) {
@@ -1204,71 +820,12 @@ VOS_STATUS vos_nv_open(void)
 
            nvReadEncodeBufSize = sizeof(sHalNv);
         }
-        vos_mem_copy(&(pnvEFSTable->halnv), &nvDefaults, sizeof(sHalNv));
-
-        /* NV verion is NV3 */
-        ((VosContextType*)(pVosContext))->nvVersion = E_NV_V3;
     }
     else
     {
-        bufSize = sizeof(nvEFSTableV2_t);
-
-        /*Copying the NV defaults */
-        vos_mem_copy(&(pnvEFSTable->halnv), &nvDefaults, sizeof(sHalNv));
-        /* NV2 structure should be maintained to support NV_FTM */
-        gnvEFSTableV2 = (nvEFSTableV2_t * )pnvEncodedBuf;
-
-        /* Size mismatch
-         * NV 1 case, use default NV table */
-        if (nvReadBufSize != bufSize)
-        {
-            pnvEFSTable->nvValidityBitmap = DEFAULT_NV_VALIDITY_BITMAP;
-            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                      "!!!WARNING: INVALID NV FILE, DRIVER IS USING DEFAULT CAL VALUES %d %d!!!",
-                      nvReadBufSize, bufSize);
-            return VOS_STATUS_SUCCESS;
-        }
-
-        VOS_TRACE(VOS_MODULE_ID_VOSS,  VOS_TRACE_LEVEL_INFO,
-                  "NV_2: readBufferSize %zu, EFSV2DefaultSize %zu",
-                  nvReadBufSize, sizeof(nvEFSTableV2_t));
-
-        /* From here, NV2 will be stored into NV3 structure */
-        dataOffset = sizeof(v_U32_t);
-        nvReadEncodeBufSize = sizeof(sHalNvV2);
-        vos_mem_copy(pEncodedBuf,
-                     &pnvEncodedBuf[dataOffset],
-                     nvReadBufSize - dataOffset);
-
-#ifdef FEATURE_WLAN_CH144
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-           "Default NV2 size %zu", sizeof(nvDefaultsV2));
-#else
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-           "Default NV2 size %zu", sizeof(nvDefaults));
-#endif /* FEATURE_WLAN_CH144 */
-        /* First assign value with NV default */
-#ifdef FEATURE_WLAN_CH144
-        vos_nv_parseV2bin((tANI_U8 *)&nvDefaultsV2,
-                          sizeof(sHalNvV2),
-                          &pnvEFSTable->halnv);
-#else
-        vos_nv_parseV2bin((tANI_U8 *)&nvDefaults,
-                          sizeof(sHalNvV2),
-                          &pnvEFSTable->halnv);
-#endif /* FEATURE_WLAN_CH144 */
-
-        /* Actual update from NV.bin */
-        vos_nv_parseV2bin(pEncodedBuf,
-                          nvReadEncodeBufSize,
-                          &pnvEFSTable->halnv);
-
-        vos_mem_copy((void *)&pnvEFSTable->nvValidityBitmap,
-                     pnvEncodedBuf, sizeof(v_U32_t));
-        gnvEFSTable = pnvEFSTable;
-
-        /* NV verion is NV2 */
-        ((VosContextType*)(pVosContext))->nvVersion = E_NV_V2;
+       dataOffset = sizeof(v_U32_t);
+       nvReadEncodeBufSize = sizeof(sHalNv);
+       memcpy(pEncodedBuf, &pnvEncodedBuf[dataOffset], nvReadEncodeBufSize);
     }
 
     if (NULL != pnvData)
@@ -1282,6 +839,28 @@ VOS_STATUS vos_nv_open(void)
 
      /* Copying the read nv data to the globa NV EFS table */
     {
+        /* Allocate memory to global NV table */
+        pnvEFSTable = (nvEFSTable_t *)vos_mem_malloc(sizeof(nvEFSTable_t));
+        if ( NULL == pnvEFSTable )
+        {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                      "%s : failed to allocate memory for NV", __func__);
+            return VOS_STATUS_E_NOMEM;
+        }
+
+        /*Copying the NV defaults */
+        vos_mem_copy(&(pnvEFSTable->halnv), &nvDefaults, sizeof(sHalNv));
+
+        /* Size mismatch */
+        if ( nvReadBufSize != bufSize)
+        {
+            pnvEFSTable->nvValidityBitmap = DEFAULT_NV_VALIDITY_BITMAP;
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                      "!!!WARNING: INVALID NV FILE, DRIVER IS USING DEFAULT CAL VALUES %d %d!!!",
+                      nvReadBufSize, bufSize);
+            return VOS_STATUS_SUCCESS;
+        }
+
        /* Version mismatch */
        if (gnvEFSTable->halnv.fields.nvVersion != WLAN_NV_VERSION)
        {
@@ -1292,15 +871,6 @@ VOS_STATUS vos_nv_open(void)
                      "!!!WARNING: Using Coupler Type field instead of Fw Config table,\n"
                      "Make sure that this is intented or may impact performance!!!\n");
            }
-#ifdef FEATURE_WLAN_CH144
-           else if ((WLAN_NV_VERSION == NV_VERSION_CH144_CONFIG) &&
-                    (((VosContextType*)(pVosContext))->nvVersion == E_NV_V2))
-           {
-               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                     "!!!WARNING: Default NV is NV3 CH144 "
-                     "BIN is NV2, NV2 contents will be used!!!");
-           }
-#endif /* FEATURE_WLAN_CH144 */
            else
            {
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -1359,21 +929,7 @@ VOS_STATUS vos_nv_open(void)
                 NULL, sizeof(sDefaultCountry) ) !=  VOS_STATUS_SUCCESS)
                     goto error;
             }
-/*                                                                  */
-#ifdef CUSTOMER_LGE
-            pHddCtx = vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
-            if (NULL != pHddCtx) {
-                if (!vos_mem_compare(pHddCtx->cfg_ini->overrideCountryCode, "000", 3)){
-                    vos_mem_copy(pnvEFSTable->halnv.tables.defaultCountryTable.countryCode,
-                    pHddCtx->cfg_ini->overrideCountryCode, 3);
-	        }
-            } else {
-                VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, ("Invalid pHddCtx pointer"));
-            }
-#endif
-/*                                                                */
         }
-
 
         if (vos_nv_getValidity(VNV_TPC_POWER_TABLE, &itemIsValid) ==
             VOS_STATUS_SUCCESS)
@@ -1614,9 +1170,9 @@ VOS_STATUS vos_nv_readMacAddress( v_MAC_ADDRESS_t pMacAddress )
       //This part of the code can be removed when NV is programmed
       const v_U8_t macAddr[VOS_MAC_ADDRESS_LEN] = VOS_HARD_CODED_MAC;
       memcpy( pMacAddress, macAddr, VOS_MAC_ADDRESS_LEN );
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
-                "fail to get MAC address from NV, hardcoded to "MAC_ADDRESS_STR,
-                MAC_ADDR_ARRAY(macAddr));
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
+          " fail to get MAC address from NV, hardcoded to %02X-%02X-%02X-%02X-%02X%02X",
+          macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4], macAddr[5]);
       status = VOS_STATUS_SUCCESS;
    }
    return status;
@@ -1998,7 +1554,6 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
   \brief vos_nv_write() - write to a NV item from an input buffer
   The \a vos_nv_write() writes to a NV item from an input buffer. This would
   validate the NV item if the write operation is successful.
-  NV2 dedicated operation
   \param type - NV item type
   \param inputBuffer - input buffer
   \param inputBufferSize - input buffer size
@@ -2009,8 +1564,8 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
           VOS_STATUS_E_FAILURE   - unknown error
   \sa
   -------------------------------------------------------------------------*/
-VOS_STATUS vos_nv_write(VNV_TYPE type, v_VOID_t *inputVoidBuffer,
-      v_SIZE_t bufferSize)
+VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
+      v_SIZE_t bufferSize )
 {
     VOS_STATUS status = VOS_STATUS_SUCCESS;
     v_SIZE_t itemSize;
@@ -2018,287 +1573,225 @@ VOS_STATUS vos_nv_write(VNV_TYPE type, v_VOID_t *inputVoidBuffer,
     // sanity check
     if (VNV_TYPE_COUNT <= type)
     {
-       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                 "%s: invalid type=%d", __func__, type);
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                  ("%s: invalid type=%d"), __func__, type );
        return VOS_STATUS_E_INVAL;
     }
     if (NULL == inputVoidBuffer)
     {
-       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                 "Buffer provided is NULL");
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+             ("Buffer provided is NULL\r\n") );
        return VOS_STATUS_E_FAULT;
     }
     if (0 == bufferSize)
     {
-       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                 "NV type=%d is invalid", type);
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+             ("NV type=%d is invalid\r\n"), type );
        return VOS_STATUS_E_INVAL;
     }
-
-    switch (type)
+    switch(type)
     {
         case VNV_FIELD_IMAGE:
-            itemSize = sizeof(gnvEFSTableV2->halnvV2.fields);
-            if (bufferSize != itemSize)
-            {
+            itemSize = sizeof(gnvEFSTable->halnv.fields);
+            if(bufferSize != itemSize) {
                 VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                     "type = %d buffer size=%d is less than data size=%d",
-                     type, bufferSize, itemSize);
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
                 status = VOS_STATUS_E_INVAL;
             }
-            else
-            {
-                memcpy(&gnvEFSTableV2->halnvV2.fields,
-                       inputVoidBuffer,
-                       bufferSize);
+            else {
+                memcpy(&gnvEFSTable->halnv.fields,inputVoidBuffer,bufferSize);
             }
             break;
-
         case VNV_RATE_TO_POWER_TABLE:
-            itemSize = sizeof(gnvEFSTableV2->halnvV2.tables.pwrOptimum);
-            if (bufferSize != itemSize)
-            {
+            itemSize = sizeof(gnvEFSTable->halnv.tables.pwrOptimum);
+            if(bufferSize != itemSize) {
                 VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "type = %d buffer size=%d is less than data size=%d",
-                    type, bufferSize,itemSize);
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
                 status = VOS_STATUS_E_INVAL;
             }
-            else
-            {
-                memcpy(&gnvEFSTableV2->halnvV2.tables.pwrOptimum[0],
-                       inputVoidBuffer,
-                       bufferSize);
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.pwrOptimum[0],inputVoidBuffer,bufferSize);
             }
             break;
-
         case VNV_REGULARTORY_DOMAIN_TABLE:
-            itemSize = sizeof(gnvEFSTableV2->halnvV2.tables.regDomains);
-            if (bufferSize != itemSize)
-            {
+            itemSize = sizeof(gnvEFSTable->halnv.tables.regDomains);
+            if(bufferSize != itemSize) {
                 VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "type = %d buffer size=%d is less than data size=%d",
-                    type, bufferSize, itemSize);
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
                 status = VOS_STATUS_E_INVAL;
             }
-            else
-            {
-                memcpy(&gnvEFSTableV2->halnvV2.tables.regDomains[0],
-                       inputVoidBuffer,
-                       bufferSize);
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.regDomains[0],inputVoidBuffer,bufferSize);
             }
             break;
-
         case VNV_DEFAULT_LOCATION:
-            itemSize = sizeof(gnvEFSTableV2->halnvV2.tables.defaultCountryTable);
-            if (bufferSize != itemSize)
-            {
+            itemSize = sizeof(gnvEFSTable->halnv.tables.defaultCountryTable);
+            if(bufferSize != itemSize) {
                 VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "type = %d buffer size=%d is less than data size=%d",
-                    type, bufferSize, itemSize);
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
                 status = VOS_STATUS_E_INVAL;
             }
-            else
-            {
-                memcpy(&gnvEFSTableV2->halnvV2.tables.defaultCountryTable,
-                       inputVoidBuffer,
-                       bufferSize);
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.defaultCountryTable,inputVoidBuffer,bufferSize);
             }
             break;
-
         case VNV_TPC_POWER_TABLE:
-            itemSize = sizeof(gnvEFSTableV2->halnvV2.tables.plutCharacterized);
-            if (bufferSize != itemSize)
-            {
+            itemSize = sizeof(gnvEFSTable->halnv.tables.plutCharacterized);
+            if(bufferSize != itemSize) {
                 VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "type = %d buffer size=%d is less than data size=%d",
-                    type, bufferSize, itemSize);
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
                 status = VOS_STATUS_E_INVAL;
             }
-            else
-            {
-                memcpy(&gnvEFSTableV2->halnvV2.tables.plutCharacterized[0],
-                       inputVoidBuffer,
-                       bufferSize);
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.plutCharacterized[0],inputVoidBuffer,bufferSize);
             }
             break;
-
         case VNV_TPC_PDADC_OFFSETS:
-            itemSize = sizeof(gnvEFSTableV2->halnvV2.tables.plutPdadcOffset);
-            if (bufferSize != itemSize)
-            {
+            itemSize = sizeof(gnvEFSTable->halnv.tables.plutPdadcOffset);
+            if(bufferSize != itemSize) {
                 VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "type = %d buffer size=%d is less than data size=%d",
-                    type, bufferSize, itemSize);
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
                 status = VOS_STATUS_E_INVAL;
             }
-            else
-            {
-                memcpy(&gnvEFSTableV2->halnvV2.tables.plutPdadcOffset[0],
-                       inputVoidBuffer,
-                       bufferSize);
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.plutPdadcOffset[0],inputVoidBuffer,bufferSize);
             }
             break;
-
          case VNV_RSSI_CHANNEL_OFFSETS:
-            itemSize = sizeof(gnvEFSTableV2->halnvV2.tables.rssiChanOffsets);
-            if (bufferSize != itemSize)
-            {
+
+            itemSize = sizeof(gnvEFSTable->halnv.tables.rssiChanOffsets);
+
+            if(bufferSize != itemSize) {
+
                 VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "type = %d buffer size=%d is less than data size=%d",
-                    type, bufferSize, itemSize);
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
                 status = VOS_STATUS_E_INVAL;
             }
-            else
-            {
-                memcpy(&gnvEFSTableV2->halnvV2.tables.rssiChanOffsets[0],
-                       inputVoidBuffer,
-                       bufferSize);
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.rssiChanOffsets[0],inputVoidBuffer,bufferSize);
             }
             break;
-
          case VNV_HW_CAL_VALUES:
-            itemSize = sizeof(gnvEFSTableV2->halnvV2.tables.hwCalValues);
-            if (bufferSize != itemSize)
-            {
+
+            itemSize = sizeof(gnvEFSTable->halnv.tables.hwCalValues);
+
+            if(bufferSize != itemSize) {
+
                 VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "type = %d buffer size=%d is less than data size=%d",
-                    type, bufferSize, itemSize);
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
                 status = VOS_STATUS_E_INVAL;
             }
-            else
-            {
-                memcpy(&gnvEFSTableV2->halnvV2.tables.hwCalValues,
-                       inputVoidBuffer,
-                       bufferSize);
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.hwCalValues,inputVoidBuffer,bufferSize);
             }
             break;
-
         case VNV_FW_CONFIG:
-           itemSize = sizeof(gnvEFSTableV2->halnvV2.tables.fwConfig);
-           if (bufferSize != itemSize)
-           {
+
+           itemSize = sizeof(gnvEFSTable->halnv.tables.fwConfig);
+
+           if(bufferSize != itemSize) {
+
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                   "type = %d buffer size=%d is less than data size=%d",
-                   type, bufferSize, itemSize);
+                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                 itemSize);
                status = VOS_STATUS_E_INVAL;
            }
-           else
-           {
-               memcpy(&gnvEFSTableV2->halnvV2.tables.fwConfig,
-                      inputVoidBuffer,
-                      bufferSize);
+           else {
+               memcpy(&gnvEFSTable->halnv.tables.fwConfig,inputVoidBuffer,bufferSize);
            }
            break;
-
         case VNV_ANTENNA_PATH_LOSS:
-            itemSize = sizeof(gnvEFSTableV2->halnvV2.tables.antennaPathLoss);
-            if (bufferSize != itemSize)
-            {
+            itemSize = sizeof(gnvEFSTable->halnv.tables.antennaPathLoss);
+            if(bufferSize != itemSize) {
                 VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "type = %d buffer size=%d is less than data size=%d",
-                    type, bufferSize, itemSize);
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
                 status = VOS_STATUS_E_INVAL;
             }
-            else
-            {
-                memcpy(&gnvEFSTableV2->halnvV2.tables.antennaPathLoss[0],
-                       inputVoidBuffer,
-                       bufferSize);
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.antennaPathLoss[0],inputVoidBuffer,bufferSize);
             }
             break;
 
         case VNV_PACKET_TYPE_POWER_LIMITS:
-            itemSize = sizeof(gnvEFSTableV2->halnvV2.tables.pktTypePwrLimits);
-            if (bufferSize != itemSize)
-            {
+            itemSize = sizeof(gnvEFSTable->halnv.tables.pktTypePwrLimits);
+            if(bufferSize != itemSize) {
                 VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "type = %d buffer size=%d is less than data size=%d",
-                    type, bufferSize, itemSize);
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
                 status = VOS_STATUS_E_INVAL;
             }
-            else
-            {
-                memcpy(gnvEFSTableV2->halnvV2.tables.pktTypePwrLimits,
-                       inputVoidBuffer,
-                       bufferSize);
+            else {
+                memcpy(gnvEFSTable->halnv.tables.pktTypePwrLimits,inputVoidBuffer,bufferSize);
             }
             break;
 
         case VNV_OFDM_CMD_PWR_OFFSET:
-            itemSize = sizeof(gnvEFSTableV2->halnvV2.tables.ofdmCmdPwrOffset);
-            if (bufferSize != itemSize)
-            {
+            itemSize = sizeof(gnvEFSTable->halnv.tables.ofdmCmdPwrOffset);
+            if(bufferSize != itemSize) {
                 VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "type = %d buffer size=%d is less than data size=%d",
-                    type, bufferSize, itemSize);
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
                 status = VOS_STATUS_E_INVAL;
             }
-            else
-            {
-                memcpy(&gnvEFSTableV2->halnvV2.tables.ofdmCmdPwrOffset,
-                       inputVoidBuffer,
-                       bufferSize);
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.ofdmCmdPwrOffset,inputVoidBuffer,bufferSize);
             }
             break;
 
         case VNV_TX_BB_FILTER_MODE:
-            itemSize = sizeof(gnvEFSTableV2->halnvV2.tables.txbbFilterMode);
-            if (bufferSize != itemSize)
-            {
+            itemSize = sizeof(gnvEFSTable->halnv.tables.txbbFilterMode);
+            if(bufferSize != itemSize) {
                 VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "type = %d buffer size=%d is less than data size=%d",
-                    type, bufferSize, itemSize);
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
                 status = VOS_STATUS_E_INVAL;
             }
-            else
-            {
-                memcpy(&gnvEFSTableV2->halnvV2.tables.txbbFilterMode,
-                       inputVoidBuffer,
-                       bufferSize);
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.txbbFilterMode,inputVoidBuffer,bufferSize);
             }
             break;
 
+
         case VNV_TABLE_VIRTUAL_RATE:
-            itemSize = sizeof(gnvEFSTableV2->halnvV2.tables.pwrOptimum_virtualRate);
-            if (bufferSize != itemSize)
-            {
+            itemSize = sizeof(gnvEFSTable->halnv.tables.pwrOptimum_virtualRate);
+            if(bufferSize != itemSize) {
                 VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "type = %d buffer size=%d is less than data size=%d",
-                    type, bufferSize, itemSize);
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
                 status = VOS_STATUS_E_INVAL;
             }
-            else
-            {
-                memcpy(&gnvEFSTableV2->halnvV2.tables.pwrOptimum_virtualRate,
-                       inputVoidBuffer,
-                       bufferSize);
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.pwrOptimum_virtualRate,inputVoidBuffer,bufferSize);
             }
             break;
 
         default:
           break;
     }
-
    if (VOS_STATUS_SUCCESS == status)
    {
       // set NV item to have valid data
-      status = vos_nv_setValidity(type, VOS_TRUE);
-      if (! VOS_IS_STATUS_SUCCESS(status))
-      {
-          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "vos_nv_setValidity failed!!!");
+      status = vos_nv_setValidity( type, VOS_TRUE );
+      if (! VOS_IS_STATUS_SUCCESS(status)) {
+          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, ("vos_nv_setValidity failed!!!\r\n"));
           status = VOS_STATUS_E_FAULT;
       }
+      status = wlan_write_to_efs((v_U8_t*)gnvEFSTable,sizeof(nvEFSTable_t));
 
-      status = wlan_write_to_efs((v_U8_t*)gnvEFSTableV2, sizeof(*gnvEFSTableV2));
-      if (!VOS_IS_STATUS_SUCCESS(status))
-      {
-          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "vos_nv_write_to_efs failed!!!");
+      if (! VOS_IS_STATUS_SUCCESS(status)) {
+          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, ("vos_nv_write_to_efs failed!!!\r\n"));
           status = VOS_STATUS_E_FAULT;
       }
    }
-
    return status;
 }
 
@@ -2449,28 +1942,9 @@ VOS_STATUS vos_nv_readDefaultCountryTable( uNvTables *tableData )
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_getNVBuffer(v_VOID_t **pNvBuffer,v_SIZE_t *pSize)
 {
-   eNvVersionType nvVersion;
-
-   nvVersion = vos_nv_getNvVersion();
-
-   if (E_NV_V3 == nvVersion)
-   {
-      /* Send the NV V3 structure and size */
-      *pNvBuffer = (v_VOID_t *)(&pnvEFSTable->halnv);
-      *pSize = sizeof(sHalNv);
-   }
-   else if (E_NV_V2 == nvVersion)
-   {
-      /* Send the NV V2 structure and size */
-      *pNvBuffer = (v_VOID_t *)(&gnvEFSTableV2->halnvV2);
-      *pSize = sizeof(sHalNvV2);
-   }
-   else
-   {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "%s : Invalid NV version %d", __func__, nvVersion);
-      return VOS_STATUS_E_INVAL;
-   }
+   /* Send the NV structure and size */
+   *pNvBuffer = (v_VOID_t *)(&pnvEFSTable->halnv);
+   *pSize = sizeof(sHalNv);
 
    return VOS_STATUS_SUCCESS;
 }
@@ -2485,8 +1959,21 @@ VOS_STATUS vos_nv_getNVBuffer(v_VOID_t **pNvBuffer,v_SIZE_t *pSize)
 VOS_STATUS vos_nv_getNVEncodedBuffer(v_VOID_t **pNvBuffer,v_SIZE_t *pSize)
 {
    /* Send the NV structure and size */
-   *pNvBuffer = (v_VOID_t *)(pEncodedBuf);
-   *pSize = nvReadEncodeBufSize;
+   VOS_STATUS status;
+
+   status = vos_nv_isEmbeddedNV();
+
+   if (VOS_STATUS_SUCCESS == status)
+   {
+      *pNvBuffer = (v_VOID_t *)(pEncodedBuf);
+      *pSize = nvReadEncodeBufSize;
+   }
+   else
+   {
+      *pNvBuffer = (v_VOID_t *)(&pnvEFSTable->halnv);
+      *pSize = sizeof(sHalNv);
+   }
+
    return VOS_STATUS_SUCCESS;
 }
 
@@ -2554,31 +2041,6 @@ eNVChannelEnabledType vos_nv_getChannelEnabledState
    return regChannels[channelEnum].enabled;
 }
 
-/**------------------------------------------------------------------------
-  \brief vos_nv_getNvVersion -
-  \param NONE
-  \return eNvVersionType NV.bin version
-             * E_NV_V2
-             * E_NV_V3
-             * E_NV_INVALID
-  \sa
-  -------------------------------------------------------------------------*/
-eNvVersionType vos_nv_getNvVersion
-(
-   void
-)
-{
-   VosContextType  *vosCtxt = NULL;
-
-   vosCtxt = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
-   if (vosCtxt)
-   {
-      return vosCtxt->nvVersion;
-   }
-
-   return E_NV_INVALID;
-}
-
 /******************************************************************
  Add CRDA regulatory support
 *******************************************************************/
@@ -2604,20 +2066,11 @@ static int bw20_ch_index_to_bw40_ch_index(int k)
       if (m > RF_CHAN_BOND_62)
          m = RF_CHAN_BOND_62;
    }
-#ifdef FEATURE_WLAN_CH144
-   else if (k >= RF_CHAN_100 && k <= RF_CHAN_144)
-#else
    else if (k >= RF_CHAN_100 && k <= RF_CHAN_140)
-#endif /* FEATURE_WLAN_CH144 */
    {
       m = k - RF_CHAN_100 + RF_CHAN_BOND_102;
-#ifdef FEATURE_WLAN_CH144
-      if (m > RF_CHAN_BOND_142)
-         m = RF_CHAN_BOND_142;
-#else
       if (m > RF_CHAN_BOND_138)
          m = RF_CHAN_BOND_138;
-#endif /* FEATURE_WLAN_CH144 */
    }
    else if (k >= RF_CHAN_149 && k <= RF_CHAN_165)
    {
@@ -2804,9 +2257,8 @@ end freq - 20000 = center freq of the 40MHz end channel
 */
 static int bw20_start_freq_to_channel_index(u32 freq_khz)
 {
-  int i;
-  u32 center_freq = freq_khz + 10000;
-
+int i;
+u32 center_freq = freq_khz + 10000;
   //Has to compare from low freq to high freq
   //RF_SUBBAND_2_4_GHZ
   for (i=RF_CHAN_1;i<=RF_CHAN_14;i++)
@@ -2821,11 +2273,7 @@ static int bw20_start_freq_to_channel_index(u32 freq_khz)
     if (center_freq <= (u32) (rfChannels[i].targetFreq) * 1000)
       return i;
   //RF_SUBBAND_5_MID_GHZ
-#ifdef FEATURE_WLAN_CH144
-  for (i=RF_CHAN_100;i<=RF_CHAN_144;i++)
-#else
   for (i=RF_CHAN_100;i<=RF_CHAN_140;i++)
-#endif /* FEATURE_WLAN_CH144 */
     if (center_freq <= (u32) (rfChannels[i].targetFreq) * 1000)
       return i;
   //RF_SUBBAND_5_HIGH_GHZ
@@ -2837,20 +2285,15 @@ return -1;
 
 static int bw20_end_freq_to_channel_index(u32 freq_khz)
 {
-  int i;
-  u32 center_freq = freq_khz - 10000;
-
+int i;
+u32 center_freq = freq_khz - 10000;
   //Has to compare from high freq to low freq
   //RF_SUBBAND_5_HIGH_GHZ
   for (i=RF_CHAN_165;i>=RF_CHAN_149;i--)
     if (center_freq >= (u32) (rfChannels[i].targetFreq) * 1000)
       return i;
   //RF_SUBBAND_5_MID_GHZ
-#ifdef FEATURE_WLAN_CH144
-  for (i=RF_CHAN_144;i>=RF_CHAN_100;i--)
-#else
   for (i=RF_CHAN_140;i>=RF_CHAN_100;i--)
-#endif /* FEATURE_WLAN_CH144 */
     if (center_freq >= (u32) (rfChannels[i].targetFreq) * 1000)
       return i;
   //RF_SUBBAND_5_LOW_GHZ
@@ -2865,14 +2308,13 @@ static int bw20_end_freq_to_channel_index(u32 freq_khz)
   for (i=RF_CHAN_14;i>=RF_CHAN_1;i--)
     if (center_freq >= (u32) (rfChannels[i].targetFreq) * 1000)
       return i;
-  return -1;
+return -1;
 }
 
 static int bw40_start_freq_to_channel_index(u32 freq_khz)
 {
-  int i;
-  u32 center_freq = freq_khz + 20000;
-
+int i;
+u32 center_freq = freq_khz + 20000;
   //Has to compare from low freq to high freq
   //RF_SUBBAND_2_4_GHZ
   for (i=RF_CHAN_BOND_3;i<=RF_CHAN_BOND_11;i++)
@@ -2887,11 +2329,7 @@ static int bw40_start_freq_to_channel_index(u32 freq_khz)
     if (center_freq <= (u32) (rfChannels[i].targetFreq) * 1000)
       return i;
   //RF_SUBBAND_5_MID_GHZ
-#ifdef FEATURE_WLAN_CH144
-  for (i=RF_CHAN_BOND_102;i<=RF_CHAN_BOND_142;i++)
-#else
   for (i=RF_CHAN_BOND_102;i<=RF_CHAN_BOND_138;i++)
-#endif /* RF_CHAN_BOND_142 */
     if (center_freq <= (u32) (rfChannels[i].targetFreq) * 1000)
       return i;
   //RF_SUBBAND_5_HIGH_GHZ
@@ -2903,20 +2341,15 @@ return -1;
 
 static int bw40_end_freq_to_channel_index(u32 freq_khz)
 {
-  int i;
-  u32 center_freq = freq_khz - 20000;
-
+int i;
+u32 center_freq = freq_khz - 20000;
   //Has to compare from high freq to low freq
   //RF_SUBBAND_5_HIGH_GHZ
   for (i=RF_CHAN_BOND_163;i>=RF_CHAN_BOND_151;i--)
     if (center_freq >= (u32) (rfChannels[i].targetFreq) * 1000)
       return i;
   //RF_SUBBAND_5_MID_GHZ
-#ifdef FEATURE_WLAN_CH144
-  for (i=RF_CHAN_BOND_142;i>=RF_CHAN_BOND_102;i--)
-#else
   for (i=RF_CHAN_BOND_138;i>=RF_CHAN_BOND_102;i--)
-#endif /* FEATURE_WLAN_CH144 */
     if (center_freq >= (u32) (rfChannels[i].targetFreq) * 1000)
       return i;
   //RF_SUBBAND_5_LOW_GHZ
@@ -3092,12 +2525,10 @@ static int create_crda_regulatory_entry_from_regd(struct wiphy *wiphy,
   \brief vos_nv_setRegDomain -
   \param clientCtxt  - Client Context, Not used for PRIMA
               regId  - Regulatory Domain ID
-              sendRegHint - send hint to nl80211
   \return status set REG domain operation
   \sa
   -------------------------------------------------------------------------*/
-VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
-                                                v_BOOL_t sendRegHint)
+VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId)
 {
 
     if (regId >= REGDOMAIN_COUNT)
@@ -3717,12 +3148,10 @@ VOS_STATUS vos_init_wiphy_from_nv_bin(void)
   \brief vos_nv_setRegDomain -
   \param clientCtxt  - Client Context, Not used for PRIMA
               regId  - Regulatory Domain ID
-              sendRegHint - send hint to nl80211
   \return status set REG domain operation
   \sa
   -------------------------------------------------------------------------*/
-VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
-                                                  v_BOOL_t sendRegHint)
+VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId)
 {
     v_CONTEXT_t pVosContext = NULL;
     hdd_context_t *pHddCtx = NULL;
@@ -3746,7 +3175,7 @@ VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
    /* when CRDA is not running then we are world roaming.
       In this case if 11d is enabled, then country code should
       be update on basis of world roaming */
-   if (NULL != pHddCtx && sendRegHint)
+   if (NULL != pHddCtx)
    {
       wiphy = pHddCtx->wiphy;
       regulatory_hint(wiphy, "00");
@@ -3890,15 +3319,7 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
       return VOS_STATUS_E_EXISTS;
    }
 }
-/* FUNCTION: vos_nv_change_country_code_cb
-*  to wait for contry code completion
-*/
-void* vos_nv_change_country_code_cb(void *pAdapter)
-{
-   struct completion *change_code_cng = pAdapter;
-   complete(change_code_cng);
-   return NULL;
-}
+
 
 /*
  * Function: wlan_hdd_crda_reg_notifier
@@ -3926,47 +3347,13 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
                      " %c%c\n", request->alpha2[0], request->alpha2[1]);
     if (request->initiator == NL80211_REGDOM_SET_BY_USER)
     {
-       int status;
        wiphy_dbg(wiphy, "info: set by user\n");
-       init_completion(&change_country_code);
-       /* We will process hints by user from nl80211 in driver.
-       * sme_ChangeCountryCode will set the country to driver
-       * and update the regdomain.
-       * when we return back to nl80211 from this callback, the nl80211 will
-       * send NL80211_CMD_REG_CHANGE event to the hostapd waking it up to
-       * query channel list from nl80211. Thus we need to update the channels
-       * according to reg domain set by user before returning to nl80211 so
-       * that hostapd will gets the updated channels.
-       * The argument sendRegHint in sme_ChangeCountryCode is
-       * set to eSIR_FALSE (hint is from nl80211 and thus
-       * no need to notify nl80211 back)*/
-       status = sme_ChangeCountryCode(pHddCtx->hHal,
-                                   (void *)(tSmeChangeCountryCallback)
-                                   vos_nv_change_country_code_cb,
-                                   request->alpha2,
-                                   &change_country_code,
-                                   pHddCtx->pvosContext,
-                                   eSIR_FALSE,
-                                   eSIR_FALSE);
-       if (eHAL_STATUS_SUCCESS == status)
-       {
-          status = wait_for_completion_interruptible_timeout(
-                                       &change_country_code,
-                                       800);
-          if(status <= 0)
-          {
-             wiphy_dbg(wiphy, "info: set country timed out\n");
-          }
-       }
-       else
-       {
-          wiphy_dbg(wiphy, "info: unable to set country by user\n");
+       if (create_crda_regulatory_entry(wiphy, request, pHddCtx->cfg_ini->nBandCapability) != 0)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0))
           return;
 #else
           return 0;
 #endif
-       }
        // ToDo
        /* Don't change default country code to CRDA country code by user req */
        /* Shouldcall sme_ChangeCountryCode to send a message to trigger read
@@ -3974,8 +3361,7 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
        //sme_ChangeCountryCode(pHddCtx->hHal, NULL,
        //    &country_code[0], pAdapter, pHddCtx->pvosContext);
     }
-
-    if (request->initiator == NL80211_REGDOM_SET_BY_COUNTRY_IE)
+    else if (request->initiator == NL80211_REGDOM_SET_BY_COUNTRY_IE)
     {
        wiphy_dbg(wiphy, "info: set by country IE\n");
        if (create_crda_regulatory_entry(wiphy, request, pHddCtx->cfg_ini->nBandCapability) != 0)
@@ -3994,8 +3380,7 @@ int wlan_hdd_crda_reg_notifier(struct wiphy *wiphy,
        //    &country_code[0], pAdapter, pHddCtx->pvosContext);
     }
     else if (request->initiator == NL80211_REGDOM_SET_BY_DRIVER ||
-             (request->initiator == NL80211_REGDOM_SET_BY_CORE)||
-                (request->initiator == NL80211_REGDOM_SET_BY_USER))
+             (request->initiator == NL80211_REGDOM_SET_BY_CORE))
     {
          if ( eHAL_STATUS_SUCCESS !=  sme_GetCountryCode(pHddCtx->hHal, ccode, &uBufLen))
          {
