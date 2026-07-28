@@ -270,8 +270,9 @@ static long android_irrc_ioctl(struct file *file, unsigned int cmd, unsigned lon
 
 	case IRRC_STOP:
 		INFO_MSG("IRRC_STOP\n");
+		/* Stock used 1500 ms; that breaks ConsumerIr pattern gating (mark/space). */
 		cancel_delayed_work_sync(&irrc->gpio_off_work); //android_irrc_disable_pwm
-		queue_delayed_work(irrc->workqueue, &irrc->gpio_off_work, msecs_to_jiffies(1500));
+		queue_delayed_work(irrc->workqueue, &irrc->gpio_off_work, msecs_to_jiffies(0));
 #ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
 		mute_spk_for_swirrc (0);
 #endif
@@ -371,8 +372,9 @@ static ssize_t codec_debug_write(struct file *filp,
 
 		case 0:
 			INFO_MSG("IRRC_STOP\n");
+			/* Immediate off — same as IRRC_STOP ioctl (ConsumerIr mark/space). */
 			cancel_delayed_work_sync(&irrc->gpio_off_work);
-			queue_delayed_work(irrc->workqueue,&irrc->gpio_off_work, msecs_to_jiffies(1500));
+			queue_delayed_work(irrc->workqueue,&irrc->gpio_off_work, msecs_to_jiffies(0));
 			break;
 		default:
 			rc = -EINVAL;
