@@ -22,7 +22,8 @@ struct android_irrc_platform_data {
 /* Debug Mask setting */
 #define IRRC_DEBUG_PRINT   (0)
 #define IRRC_ERROR_PRINT   (1)
-#define IRRC_INFO_PRINT    (1)
+/* Off in hot path: INFO printk per mark/space destroys ConsumerIr timing. */
+#define IRRC_INFO_PRINT    (0)
 
 #if (IRRC_INFO_PRINT)
 #define INFO_MSG(fmt, args...) \

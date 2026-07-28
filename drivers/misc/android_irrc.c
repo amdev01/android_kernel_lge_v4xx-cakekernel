@@ -94,6 +94,61 @@ static struct timed_irrc_data *irrc_data_ptr;
 static struct platform_device *irrc_dev_ptr;
 static int gpio_high_flag = 0;
 static bool g_pwm_enabled = false;
+/* Regulators stay on across mark/space; only PWM/clk is gated per pulse. */
+static bool g_irrc_powered = false;
+
+static void android_irrc_power_on(struct timed_irrc_data *irrc)
+{
+	int rc;
+
+	if (g_irrc_powered)
+		return;
+
+	if (irrc->vreg != NULL) {
+		rc = regulator_enable(irrc->vreg);
+		if (rc < 0)
+			ERR_MSG("regulator_enable failed\n");
+	}
+	if (irrc->vreg2 != NULL) {
+		rc = regulator_enable(irrc->vreg2);
+		if (rc < 0)
+			ERR_MSG("regulator_enable failed2\n");
+	}
+	g_irrc_powered = true;
+}
+
+static void android_irrc_power_off(struct timed_irrc_data *irrc)
+{
+	int rc;
+
+	if (!g_irrc_powered)
+		return;
+
+	if (irrc->vreg != NULL && regulator_is_enabled(irrc->vreg) > 0) {
+		rc = regulator_disable(irrc->vreg);
+		if (rc < 0)
+			ERR_MSG("regulator_disable failed\n");
+	}
+	if (irrc->vreg2 != NULL && regulator_is_enabled(irrc->vreg2) > 0) {
+		rc = regulator_disable(irrc->vreg2);
+		if (rc < 0)
+			ERR_MSG("regulator_disable failed2\n");
+	}
+	g_irrc_powered = false;
+}
+
+static void android_irrc_carrier_off(struct timed_irrc_data *irrc)
+{
+	if (!g_pwm_enabled)
+		return;
+
+	if (gpio_high_flag == 1) {
+		gpio_set_value(irrc->pwm_gpio, 0);
+	} else {
+		clk_disable_unprepare(irrc->gp_clk);
+	}
+	g_pwm_enabled = false;
+}
 
 static struct gpiomux_setting irrc_active = {
 	.func = 0, //[WX project] The value will be from device tree. GPIO for GP clock has alternative function.
@@ -153,42 +208,38 @@ static int android_irrc_set_pwm(int enable,int PWM_CLK, int duty)
 
 static void android_irrc_enable_pwm(struct timed_irrc_data *irrc, int PWM_CLK, int duty)
 {
-	int rc;
+	/* Cancel idle regulator poweroff; keep rails across mark/space. */
+	cancel_delayed_work_sync(&irrc->gpio_off_work);
 
-	cancel_delayed_work_sync(&irrc->gpio_off_work); //android_irrc_disable_pwm
-
-	if(g_pwm_enabled == true) {
+	if (g_pwm_enabled == true) {
 		INFO_MSG("pwm already enabled !!!\n");
 		return;
 	}
 
-	if (irrc->vreg != NULL) {
-		rc = regulator_enable(irrc->vreg);
-		if (rc < 0)
-			ERR_MSG("regulator_enable failed\n");
-	}
-	if (irrc->vreg2 != NULL) {
-		rc = regulator_enable(irrc->vreg2);
-        ERR_MSG("irrc->vreg2 set!!\n");
-		if (rc < 0)
-			ERR_MSG("regulator_enable failed2\n");
-	}
+	android_irrc_power_on(irrc);
 
-	if((PWM_CLK == 0) || (duty == 100)){
+	if ((PWM_CLK == 0) || (duty == 100)) {
 		INFO_MSG("gpio set to high!!!\n");
 
-		gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio, 0, GPIO_CFG_OUTPUT,
+					GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+				GPIO_CFG_ENABLE);
 		gpio_set_value(irrc->pwm_gpio, 1);
 
 		gpio_high_flag = 1;
 
-	} else if((PWM_CLK < 23) || (PWM_CLK > 1200) || (duty > 60) || (duty < 20) ){
+	} else if ((PWM_CLK < 23) || (PWM_CLK > 1200) ||
+			(duty > 60) || (duty < 20)) {
 		INFO_MSG("Out of range ! \n");
+		return;
 
 	} else {
 		INFO_MSG("gpio set to gp!!!\n");
 
-		gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio, irrc->pwm_gpio_func, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio, irrc->pwm_gpio_func,
+					GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,
+					GPIO_CFG_2MA),
+				GPIO_CFG_ENABLE);
 		clk_prepare_enable(irrc->gp_clk);
 
 		android_irrc_set_pwm(1, PWM_CLK, duty);
@@ -199,34 +250,15 @@ static void android_irrc_enable_pwm(struct timed_irrc_data *irrc, int PWM_CLK, i
 
 static void android_irrc_disable_pwm(struct work_struct *work)
 {
-	int rc;
-	struct timed_irrc_data *irrc = container_of(work, struct timed_irrc_data, gpio_off_work.work);
+	struct timed_irrc_data *irrc = container_of(work, struct timed_irrc_data,
+			gpio_off_work.work);
 
-	INFO_MSG("bk gpio_high_flag = %d\n", gpio_high_flag);
-
-	if(g_pwm_enabled == false) {
-		INFO_MSG("pwm already disabled !!!\n");
-		return;
-	}
-	if (irrc->vreg != NULL && regulator_is_enabled(irrc->vreg) > 0) {
-		rc = regulator_disable(irrc->vreg);
-		if (rc < 0)
-			ERR_MSG("regulator_disable failed\n");
-	}
-	if (irrc->vreg2 != NULL && regulator_is_enabled(irrc->vreg2) > 0) {
-		rc = regulator_disable(irrc->vreg2);
-		if (rc < 0)
-			ERR_MSG("regulator_disable failed2\n");
-	}
-
-	if(gpio_high_flag == 1){
-		gpio_set_value(irrc->pwm_gpio, 0);
-
-	} else {
-		//android_irrc_set_pwm(0,38,30); //no need
-		clk_disable_unprepare(irrc->gp_clk);
-	}
-	g_pwm_enabled = false;
+	/*
+	 * Delayed idle work: rails only. Carrier is stopped synchronously on
+	 * IRRC_STOP / poke-off so ConsumerIr mark/space stays accurate.
+	 */
+	if (!g_pwm_enabled)
+		android_irrc_power_off(irrc);
 }
 
 static int android_irrc_open(struct inode *inode, struct file *file)
@@ -270,9 +302,17 @@ static long android_irrc_ioctl(struct file *file, unsigned int cmd, unsigned lon
 
 	case IRRC_STOP:
 		INFO_MSG("IRRC_STOP\n");
-		/* Stock used 1500 ms; that breaks ConsumerIr pattern gating (mark/space). */
-		cancel_delayed_work_sync(&irrc->gpio_off_work); //android_irrc_disable_pwm
-		queue_delayed_work(irrc->workqueue, &irrc->gpio_off_work, msecs_to_jiffies(0));
+		/*
+		 * Gate carrier immediately. Keep IR LED rails powered; drop
+		 * them after a short idle so the next mark is cheap.
+		 * (Stock delayed the whole disable by 1500 ms — unusable for
+		 * ConsumerIr patterns. Async work for carrier off also broke
+		 * sub-ms NEC timing via regulator churn.)
+		 */
+		cancel_delayed_work_sync(&irrc->gpio_off_work);
+		android_irrc_carrier_off(irrc);
+		queue_delayed_work(irrc->workqueue, &irrc->gpio_off_work,
+				msecs_to_jiffies(100));
 #ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
 		mute_spk_for_swirrc (0);
 #endif
@@ -372,9 +412,10 @@ static ssize_t codec_debug_write(struct file *filp,
 
 		case 0:
 			INFO_MSG("IRRC_STOP\n");
-			/* Immediate off — same as IRRC_STOP ioctl (ConsumerIr mark/space). */
 			cancel_delayed_work_sync(&irrc->gpio_off_work);
-			queue_delayed_work(irrc->workqueue,&irrc->gpio_off_work, msecs_to_jiffies(0));
+			android_irrc_carrier_off(irrc);
+			queue_delayed_work(irrc->workqueue, &irrc->gpio_off_work,
+					msecs_to_jiffies(100));
 			break;
 		default:
 			rc = -EINVAL;
