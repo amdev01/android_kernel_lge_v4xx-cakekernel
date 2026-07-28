@@ -6410,7 +6410,17 @@ qpnp_charger_probe(struct spmi_device *spmi)
 						subtype, rc);
 				goto fail_chg_enable;
 			}
-			gpio_request(33, "ext_ovp");
+			/*
+			 * Do not hardcode msmgpio 33 as "ext_ovp".
+			 * On v4xx (e7/e8) GPIO 33 is the SwIRRC PWM pin
+			 * (lge,pwm-gpio); real ext OVP is pm8226 GPIO from
+			 * lge,ext_ovp_gpio. Claiming 33 here makes
+			 * android_irrc probe fail with "IRRC GPIO set failed".
+			 */
+#ifdef CONFIG_LGE_PM_CHARGING_EXTERNAL_OVP
+			if (gpio_is_valid(chip->ext_ovp_gpio))
+				gpio_request(chip->ext_ovp_gpio, "ext_ovp");
+#endif
 			break;
 		case SMBB_DC_CHGPTH_SUBTYPE:
 			chip->dc_chgpth_base = resource->start;
