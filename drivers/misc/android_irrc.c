@@ -100,21 +100,27 @@ static bool g_irrc_powered = false;
 static void android_irrc_power_on(struct timed_irrc_data *irrc)
 {
 	int rc;
+	bool ok = true;
 
 	if (g_irrc_powered)
 		return;
 
 	if (irrc->vreg != NULL) {
 		rc = regulator_enable(irrc->vreg);
-		if (rc < 0)
+		if (rc < 0) {
 			ERR_MSG("regulator_enable failed\n");
+			ok = false;
+		}
 	}
 	if (irrc->vreg2 != NULL) {
 		rc = regulator_enable(irrc->vreg2);
-		if (rc < 0)
+		if (rc < 0) {
 			ERR_MSG("regulator_enable failed2\n");
+			ok = false;
+		}
 	}
-	g_irrc_powered = true;
+	if (ok)
+		g_irrc_powered = true;
 }
 
 static void android_irrc_power_off(struct timed_irrc_data *irrc)
@@ -211,10 +217,8 @@ static void android_irrc_enable_pwm(struct timed_irrc_data *irrc, int PWM_CLK, i
 	/* Cancel idle regulator poweroff; keep rails across mark/space. */
 	cancel_delayed_work_sync(&irrc->gpio_off_work);
 
-	if (g_pwm_enabled == true) {
-		INFO_MSG("pwm already enabled !!!\n");
-		return;
-	}
+	if (g_pwm_enabled == true)
+		android_irrc_carrier_off(irrc);
 
 	android_irrc_power_on(irrc);
 
@@ -230,7 +234,7 @@ static void android_irrc_enable_pwm(struct timed_irrc_data *irrc, int PWM_CLK, i
 
 	} else if ((PWM_CLK < 23) || (PWM_CLK > 1200) ||
 			(duty > 60) || (duty < 20)) {
-		INFO_MSG("Out of range ! \n");
+		ERR_MSG("Out of range: pwm_clk=%d duty=%d\n", PWM_CLK, duty);
 		return;
 
 	} else {
@@ -449,7 +453,7 @@ static void android_irrc_parse_dt(struct device *dev, struct timed_irrc_data *da
 	data->clk_name = of_get_property(np, "lge,clk-name", &len);
 	of_property_read_u32(np, "lge,clk-rate", &data->clk_rate);
 
-	INFO_MSG("rcgr:%x, gpio:%d, gpio-func:%d, clk name: %s, clk rate: %u\n", 
+	PROBE_MSG("rcgr:%x, gpio:%d, gpio-func:%d, clk name: %s, clk rate: %u\n",
 			data->gp_cmd_rcgr, data->pwm_gpio, data->pwm_gpio_func, data->clk_name, data->clk_rate);
 }
 
@@ -486,7 +490,7 @@ static int android_irrc_probe(struct platform_device *pdev)
 	int rc;
 	struct timed_irrc_data *irrc;
 
-	INFO_MSG("probe\n");
+	PROBE_MSG("probe\n");
 
 	irrc = kzalloc(sizeof(struct timed_irrc_data), GFP_KERNEL);
 	if (irrc == NULL) {
@@ -526,7 +530,7 @@ static int android_irrc_probe(struct platform_device *pdev)
 
 	irrc->dev.name = "irrc";
 	pdev->dev.init_name = irrc->dev.name;
-	INFO_MSG("dev->init_name : %s, dev->kobj : %s\n", pdev->dev.init_name, pdev->dev.kobj.name);
+	PROBE_MSG("dev->init_name : %s, dev->kobj : %s\n", pdev->dev.init_name, pdev->dev.kobj.name);
 
 	irrc->gp_clk = clk_get(&pdev->dev, irrc->clk_name);
 	clk_set_rate(irrc->gp_clk, (unsigned long)irrc->clk_rate);
@@ -629,13 +633,13 @@ static struct platform_driver android_irrc_driver = {
 
 static int __init android_irrc_init(void)
 {
-	INFO_MSG("init\n");
+	PROBE_MSG("init\n");
 	return platform_driver_register(&android_irrc_driver);
 }
 
 static void __exit android_irrc_exit(void)
 {
-	INFO_MSG("exit\n");
+	PROBE_MSG("exit\n");
 	platform_driver_unregister(&android_irrc_driver);
 }
 

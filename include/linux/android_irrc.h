@@ -22,8 +22,16 @@ struct android_irrc_platform_data {
 /* Debug Mask setting */
 #define IRRC_DEBUG_PRINT   (0)
 #define IRRC_ERROR_PRINT   (1)
-/* Off in hot path: INFO printk per mark/space destroys ConsumerIr timing. */
-#define IRRC_INFO_PRINT    (0)
+/*
+ * HITL: leave at 1 to see poke START/STOP in dmesg. Must be 0 for production
+ * ConsumerIr timing — INFO printk per mark/space destroys sub-ms NEC patterns.
+ */
+#define IRRC_INFO_PRINT    (1)
+
+/* Always on for probe/init/parse_dt; independent of IRRC_INFO_PRINT. */
+#define PROBE_MSG(fmt, args...) \
+			printk(KERN_INFO "irrc: %s() " \
+				fmt, __FUNCTION__, ##args);
 
 #if (IRRC_INFO_PRINT)
 #define INFO_MSG(fmt, args...) \
