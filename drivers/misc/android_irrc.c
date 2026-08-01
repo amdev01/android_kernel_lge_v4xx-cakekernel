@@ -558,12 +558,20 @@ static int irrc_timing_show(struct seq_file *s, void *unused)
 {
 	unsigned long flags;
 	unsigned i, n;
-	u64 edges[IRRC_TIMING_MAX];
-	u8 on[IRRC_TIMING_MAX];
+	u64 *edges;
+	u8 *on;
 	unsigned dropped;
 	u64 mark_min = ~0ULL, mark_max = 0, mark_sum = 0;
 	u64 space_min = ~0ULL, space_max = 0, space_sum = 0;
 	unsigned marks = 0, spaces = 0;
+
+	edges = kmalloc(sizeof(*edges) * IRRC_TIMING_MAX, GFP_KERNEL);
+	on = kmalloc(sizeof(*on) * IRRC_TIMING_MAX, GFP_KERNEL);
+	if (!edges || !on) {
+		kfree(edges);
+		kfree(on);
+		return -ENOMEM;
+	}
 
 	spin_lock_irqsave(&g_timing_lock, flags);
 	n = g_edge_count;
@@ -624,6 +632,9 @@ static int irrc_timing_show(struct seq_file *s, void *unused)
 				(unsigned long long)(space_sum / spaces),
 				(unsigned long long)space_max);
 	}
+
+	kfree(edges);
+	kfree(on);
 	return 0;
 }
 
