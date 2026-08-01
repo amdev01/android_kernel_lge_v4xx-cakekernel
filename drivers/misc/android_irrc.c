@@ -96,6 +96,12 @@ static int gpio_high_flag = 0;
 static bool g_pwm_enabled = false;
 /* Regulators stay on across mark/space; only PWM/clk is gated per pulse. */
 static bool g_irrc_powered = false;
+/* Mux + gp_clk stay prepared across a transmit burst; disarm after idle. */
+static bool g_irrc_clk_armed = false;
+static int g_pwm_clk;
+static int g_pwm_duty;
+
+static int android_irrc_set_pwm(int enable, int PWM_CLK, int duty);
 
 static void android_irrc_power_on(struct timed_irrc_data *irrc)
 {
@@ -143,17 +149,48 @@ static void android_irrc_power_off(struct timed_irrc_data *irrc)
 	g_irrc_powered = false;
 }
 
-static void android_irrc_carrier_off(struct timed_irrc_data *irrc)
+static void android_irrc_disarm(struct timed_irrc_data *irrc)
 {
-	if (!g_pwm_enabled)
-		return;
-
 	if (gpio_high_flag == 1) {
 		gpio_set_value(irrc->pwm_gpio, 0);
-	} else {
+	} else if (g_irrc_clk_armed) {
+		android_irrc_set_pwm(0, g_pwm_clk, g_pwm_duty);
 		clk_disable_unprepare(irrc->gp_clk);
+		g_irrc_clk_armed = false;
 	}
+	gpio_high_flag = 0;
 	g_pwm_enabled = false;
+}
+
+/*
+ * Gate carrier on/off within a burst. Spaces only clear ROOT_EN; mux/clk stay
+ * armed until android_irrc_disarm() after idle.
+ */
+static void android_irrc_pwm_gate(struct timed_irrc_data *irrc, int on,
+		int PWM_CLK, int duty)
+{
+	if (gpio_high_flag == 1) {
+		gpio_set_value(irrc->pwm_gpio, on ? 1 : 0);
+		return;
+	}
+
+	if (on) {
+		if (!g_irrc_clk_armed) {
+			gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio,
+						irrc->pwm_gpio_func,
+						GPIO_CFG_OUTPUT,
+						GPIO_CFG_NO_PULL,
+						GPIO_CFG_2MA),
+					GPIO_CFG_ENABLE);
+			clk_prepare_enable(irrc->gp_clk);
+			g_irrc_clk_armed = true;
+		}
+		g_pwm_clk = PWM_CLK;
+		g_pwm_duty = duty;
+		android_irrc_set_pwm(1, PWM_CLK, duty);
+	} else if (g_irrc_clk_armed) {
+		android_irrc_set_pwm(0, g_pwm_clk, g_pwm_duty);
+	}
 }
 
 static struct gpiomux_setting irrc_active = {
@@ -214,23 +251,25 @@ static int android_irrc_set_pwm(int enable,int PWM_CLK, int duty)
 
 static void android_irrc_enable_pwm(struct timed_irrc_data *irrc, int PWM_CLK, int duty)
 {
-	/* Cancel idle regulator poweroff; keep rails across mark/space. */
+	/* Cancel idle disarm/poweroff; keep rails and clk across mark/space. */
 	cancel_delayed_work_sync(&irrc->gpio_off_work);
-
-	if (g_pwm_enabled == true)
-		android_irrc_carrier_off(irrc);
 
 	android_irrc_power_on(irrc);
 
 	if ((PWM_CLK == 0) || (duty == 100)) {
 		INFO_MSG("gpio set to high!!!\n");
 
-		gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio, 0, GPIO_CFG_OUTPUT,
-					GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-				GPIO_CFG_ENABLE);
+		if (gpio_high_flag != 1) {
+			if (g_irrc_clk_armed)
+				android_irrc_disarm(irrc);
+			gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio, 0,
+						GPIO_CFG_OUTPUT,
+						GPIO_CFG_NO_PULL,
+						GPIO_CFG_2MA),
+					GPIO_CFG_ENABLE);
+			gpio_high_flag = 1;
+		}
 		gpio_set_value(irrc->pwm_gpio, 1);
-
-		gpio_high_flag = 1;
 
 	} else if ((PWM_CLK < 23) || (PWM_CLK > 1200) ||
 			(duty > 60) || (duty < 20)) {
@@ -240,16 +279,22 @@ static void android_irrc_enable_pwm(struct timed_irrc_data *irrc, int PWM_CLK, i
 	} else {
 		INFO_MSG("gpio set to gp!!!\n");
 
-		gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio, irrc->pwm_gpio_func,
-					GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,
-					GPIO_CFG_2MA),
-				GPIO_CFG_ENABLE);
-		clk_prepare_enable(irrc->gp_clk);
-
-		android_irrc_set_pwm(1, PWM_CLK, duty);
-		gpio_high_flag = 0;
+		if (gpio_high_flag == 1) {
+			gpio_set_value(irrc->pwm_gpio, 0);
+			gpio_high_flag = 0;
+		}
+		android_irrc_pwm_gate(irrc, 1, PWM_CLK, duty);
 	}
 	g_pwm_enabled = true;
+}
+
+static void android_irrc_gate_carrier_off(struct timed_irrc_data *irrc)
+{
+	if (!g_pwm_enabled)
+		return;
+
+	android_irrc_pwm_gate(irrc, 0, g_pwm_clk, g_pwm_duty);
+	g_pwm_enabled = false;
 }
 
 static void android_irrc_disable_pwm(struct work_struct *work)
@@ -258,11 +303,13 @@ static void android_irrc_disable_pwm(struct work_struct *work)
 			gpio_off_work.work);
 
 	/*
-	 * Delayed idle work: rails only. Carrier is stopped synchronously on
-	 * IRRC_STOP / poke-off so ConsumerIr mark/space stays accurate.
+	 * Delayed idle work: full disarm (clk/mux) then rails. Carrier is gated
+	 * synchronously on IRRC_STOP / poke-off so mark/space stays accurate.
 	 */
-	if (!g_pwm_enabled)
+	if (!g_pwm_enabled) {
+		android_irrc_disarm(irrc);
 		android_irrc_power_off(irrc);
+	}
 }
 
 static int android_irrc_open(struct inode *inode, struct file *file)
@@ -307,14 +354,11 @@ static long android_irrc_ioctl(struct file *file, unsigned int cmd, unsigned lon
 	case IRRC_STOP:
 		INFO_MSG("IRRC_STOP\n");
 		/*
-		 * Gate carrier immediately. Keep IR LED rails powered; drop
-		 * them after a short idle so the next mark is cheap.
-		 * (Stock delayed the whole disable by 1500 ms — unusable for
-		 * ConsumerIr patterns. Async work for carrier off also broke
-		 * sub-ms NEC timing via regulator churn.)
+		 * Gate carrier immediately (ROOT_EN off / gpio low) without
+		 * clk_disable. Full disarm + rails drop after 100 ms idle.
 		 */
 		cancel_delayed_work_sync(&irrc->gpio_off_work);
-		android_irrc_carrier_off(irrc);
+		android_irrc_gate_carrier_off(irrc);
 		queue_delayed_work(irrc->workqueue, &irrc->gpio_off_work,
 				msecs_to_jiffies(100));
 #ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
@@ -417,7 +461,7 @@ static ssize_t codec_debug_write(struct file *filp,
 		case 0:
 			INFO_MSG("IRRC_STOP\n");
 			cancel_delayed_work_sync(&irrc->gpio_off_work);
-			android_irrc_carrier_off(irrc);
+			android_irrc_gate_carrier_off(irrc);
 			queue_delayed_work(irrc->workqueue, &irrc->gpio_off_work,
 					msecs_to_jiffies(100));
 			break;

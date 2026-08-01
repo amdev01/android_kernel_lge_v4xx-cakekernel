@@ -23,10 +23,10 @@ struct android_irrc_platform_data {
 #define IRRC_DEBUG_PRINT   (0)
 #define IRRC_ERROR_PRINT   (1)
 /*
- * HITL: leave at 1 to see poke START/STOP in dmesg. Must be 0 for production
- * ConsumerIr timing — INFO printk per mark/space destroys sub-ms NEC patterns.
+ * Production ConsumerIr: keep 0 — INFO printk per mark/space destroys sub-ms
+ * NEC/LG TV patterns. Use PROBE_MSG for boot and ERR_MSG for failures.
  */
-#define IRRC_INFO_PRINT    (1)
+#define IRRC_INFO_PRINT    (0)
 
 /* Always on for probe/init/parse_dt; independent of IRRC_INFO_PRINT. */
 #define PROBE_MSG(fmt, args...) \
