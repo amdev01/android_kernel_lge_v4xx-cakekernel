@@ -53,6 +53,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/ktime.h>
 #include <linux/seq_file.h>
+#include <linux/math64.h>
 
 /*
     For ADB debugging
@@ -587,11 +588,11 @@ static int irrc_timing_show(struct seq_file *s, void *unused)
 	seq_printf(s, "# idx state delta_us abs_us\n");
 
 	for (i = 0; i < n; i++) {
-		u64 abs_us = edges[i] / 1000ULL;
+		u64 abs_us = div_u64(edges[i], 1000);
 		u64 delta_us = 0;
 
 		if (i > 0)
-			delta_us = (edges[i] - edges[i - 1]) / 1000ULL;
+			delta_us = div_u64(edges[i] - edges[i - 1], 1000);
 
 		seq_printf(s, "%u %s %llu %llu\n", i,
 				on[i] ? "mark" : "space",
@@ -622,14 +623,14 @@ static int irrc_timing_show(struct seq_file *s, void *unused)
 		seq_printf(s, "mark_us: n=%u min=%llu avg=%llu max=%llu (NEC ~560/1690)\n",
 				marks,
 				(unsigned long long)mark_min,
-				(unsigned long long)(mark_sum / marks),
+				(unsigned long long)div_u64(mark_sum, marks),
 				(unsigned long long)mark_max);
 	}
 	if (spaces) {
 		seq_printf(s, "space_us: n=%u min=%llu avg=%llu max=%llu (NEC ~560/4500/9000)\n",
 				spaces,
 				(unsigned long long)space_min,
-				(unsigned long long)(space_sum / spaces),
+				(unsigned long long)div_u64(space_sum, spaces),
 				(unsigned long long)space_max);
 	}
 
