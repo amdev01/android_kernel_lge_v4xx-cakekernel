@@ -54,6 +54,8 @@
 #include <linux/ktime.h>
 #include <linux/seq_file.h>
 #include <linux/math64.h>
+#include <linux/preempt.h>
+#include <asm/processor.h> /* cpu_relax() */
 
 /*
     For ADB debugging
@@ -366,6 +368,113 @@ static void android_irrc_gate_carrier_off(struct timed_irrc_data *irrc)
 	android_irrc_timing_edge(0);
 }
 
+/*
+ * Busy-wait for pattern marks/spaces. usleep_range / timer slack is ~tens of
+ * ms on this platform and cannot reproduce NEC (~560 us) edges.
+ *
+ * Use only addition on ktime (CONFIG_KTIME_SCALAR) — never u64 / u64, which
+ * pulls in __aeabi_uldivmod on ARM EABI and is not linked into the kernel.
+ * Hold preempt only for short NEC marks/spaces; longer gaps (>3 ms) may
+ * schedule so we do not soft-lock the CPU on inter-frame delays.
+ */
+static void irrc_busy_wait_us(unsigned int us)
+{
+	ktime_t end = ktime_add_ns(ktime_get(), (u64)us * 1000ULL);
+	int tight = (us <= 3000);
+
+	if (tight)
+		preempt_disable();
+	while (ktime_compare(ktime_get(), end) < 0)
+		cpu_relax();
+	if (tight)
+		preempt_enable();
+}
+
+static int android_irrc_transmit(struct timed_irrc_data *irrc,
+		struct irrc_transmit_params *params, const int *pattern)
+{
+	int freq_khz = params->frequency / 1000;
+	int duty = params->duty;
+	int gpio_mode;
+	int i;
+
+	gpio_mode = (freq_khz == 0) || (duty == 100);
+
+	if (!gpio_mode && ((freq_khz < 23) || (freq_khz > 1200) ||
+			(duty > 60) || (duty < 20))) {
+		ERR_MSG("Out of range: pwm_clk=%d duty=%d\n", freq_khz, duty);
+		return -EINVAL;
+	}
+
+	/*
+	 * Must sync-cancel: a running idle disarm mid-pattern would clear
+	 * g_irrc_clk_armed and force clk_prepare_enable() from pwm_gate while
+	 * preempt is disabled in the busy-wait.
+	 */
+	cancel_delayed_work_sync(&irrc->gpio_off_work);
+	android_irrc_timing_reset();
+	android_irrc_power_on(irrc);
+
+	/* Arm mux/clk (or GPIO) once before the pattern loop (may sleep). */
+	if (gpio_mode) {
+		if (gpio_high_flag != 1) {
+			if (g_irrc_clk_armed)
+				android_irrc_disarm(irrc);
+			gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio, 0,
+						GPIO_CFG_OUTPUT,
+						GPIO_CFG_NO_PULL,
+						GPIO_CFG_2MA),
+					GPIO_CFG_ENABLE);
+			gpio_high_flag = 1;
+		}
+	} else {
+		if (gpio_high_flag == 1) {
+			gpio_set_value(irrc->pwm_gpio, 0);
+			gpio_high_flag = 0;
+		}
+		if (!g_irrc_clk_armed) {
+			gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio,
+						irrc->pwm_gpio_func,
+						GPIO_CFG_OUTPUT,
+						GPIO_CFG_NO_PULL,
+						GPIO_CFG_2MA),
+					GPIO_CFG_ENABLE);
+			clk_prepare_enable(irrc->gp_clk);
+			g_irrc_clk_armed = true;
+			g_pwm_n = -1;
+			g_pwm_d = -1;
+			g_pwm_root_on = false;
+		}
+		g_pwm_clk = freq_khz;
+		g_pwm_duty = duty;
+	}
+
+	/* Even index = mark (carrier on), odd = space — ConsumerIr contract. */
+	for (i = 0; i < params->count; i++) {
+		int on = ((i & 1) == 0);
+
+		if (on) {
+			android_irrc_pwm_gate(irrc, 1, freq_khz, duty);
+			g_pwm_enabled = true;
+			android_irrc_timing_edge(1);
+		} else {
+			android_irrc_pwm_gate(irrc, 0, freq_khz, duty);
+			g_pwm_enabled = false;
+			android_irrc_timing_edge(0);
+		}
+
+		if (pattern[i] > 0)
+			irrc_busy_wait_us((unsigned int)pattern[i]);
+	}
+
+	/* Ensure carrier off and schedule idle disarm. */
+	android_irrc_gate_carrier_off(irrc);
+	queue_delayed_work(irrc->workqueue, &irrc->gpio_off_work,
+			msecs_to_jiffies(100));
+
+	return 0;
+}
+
 static void android_irrc_disable_pwm(struct work_struct *work)
 {
 	struct timed_irrc_data *irrc = container_of(work, struct timed_irrc_data,
@@ -407,6 +516,10 @@ static long android_irrc_ioctl(struct file *file, unsigned int cmd, unsigned lon
 {
 	struct timed_irrc_data *irrc = file->private_data;
 	struct irrc_compr_params test;
+	struct irrc_transmit_params xmit;
+	int *pattern = NULL;
+	unsigned long total_us;
+	int i;
 	int rc = 0;
 
 	switch (cmd) {
@@ -435,6 +548,51 @@ static long android_irrc_ioctl(struct file *file, unsigned int cmd, unsigned lon
 		mute_spk_for_swirrc (0);
 #endif
 		break;
+
+	case IRRC_TRANSMIT:
+		if (copy_from_user(&xmit, (void __user *)arg, sizeof(xmit)))
+			return -EFAULT;
+
+		if (xmit.count <= 0 || xmit.count > IRRC_TRANSMIT_MAX_COUNT)
+			return -EINVAL;
+		if (!xmit.pattern)
+			return -EINVAL;
+
+		pattern = kmalloc(sizeof(*pattern) * xmit.count, GFP_KERNEL);
+		if (!pattern)
+			return -ENOMEM;
+
+		if (copy_from_user(pattern, (void __user *)xmit.pattern,
+				sizeof(*pattern) * xmit.count)) {
+			kfree(pattern);
+			return -EFAULT;
+		}
+
+		total_us = 0;
+		for (i = 0; i < xmit.count; i++) {
+			if (pattern[i] < 0) {
+				kfree(pattern);
+				return -EINVAL;
+			}
+			total_us += (unsigned int)pattern[i];
+			if (total_us > IRRC_TRANSMIT_MAX_DURATION_US) {
+				kfree(pattern);
+				return -EINVAL;
+			}
+		}
+
+		INFO_MSG("IRRC_TRANSMIT: freq:%d, duty:%d, count:%d\n",
+				xmit.frequency / 1000, xmit.duty, xmit.count);
+#ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
+		mute_spk_for_swirrc(1);
+#endif
+		rc = android_irrc_transmit(irrc, &xmit, pattern);
+#ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
+		mute_spk_for_swirrc(0);
+#endif
+		kfree(pattern);
+		break;
+
 	default:
 	    INFO_MSG("CMD ERROR: cmd:%d\n", cmd);
 		rc = -EINVAL;

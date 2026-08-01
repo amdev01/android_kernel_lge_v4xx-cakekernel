@@ -62,6 +62,20 @@ struct android_irrc_platform_data {
 
 #define IRRC_IOCTL_MAGIC 'a'
 
+/*
+ * Kernel-side pattern playback (sub-ms mark/space). Userspace passes
+ * frequency in Hz; pattern[] durations are microseconds, even=mark, odd=space.
+ */
+struct irrc_transmit_params {
+	int frequency; /* Hz */
+	int duty;      /* percent */
+	int count;     /* number of pattern entries */
+	const int __user *pattern;
+};
+
 #define IRRC_START        _IOW(IRRC_IOCTL_MAGIC, 0, int)
 #define IRRC_STOP         _IOW(IRRC_IOCTL_MAGIC, 1, int)
-//#endif
+#define IRRC_TRANSMIT     _IOW(IRRC_IOCTL_MAGIC, 2, struct irrc_transmit_params)
+
+#define IRRC_TRANSMIT_MAX_COUNT		512
+#define IRRC_TRANSMIT_MAX_DURATION_US	2000000
