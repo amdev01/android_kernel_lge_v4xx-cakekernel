@@ -625,6 +625,51 @@ struct miscdevice irrc_misc = {
 static struct dentry *debugfs_wcd9xxx_dent;
 static struct dentry *debugfs_poke;
 static struct dentry *debugfs_timing;
+static struct dentry *debugfs_nec_test;
+
+/*
+ * NEC frame + optional repeat for HITL:
+ *   header(2) + 32*(mark+space) + trail(1) + gap(1) + repeat(3) = 71
+ */
+#define NEC_TEST_PATTERN_MAX	71
+#define NEC_TEST_CARRIER_HZ	38000
+#define NEC_TEST_DUTY		50
+
+static int irrc_build_nec_pattern(int *pat, u8 addr, u8 cmd)
+{
+	u32 frame;
+	int n = 0;
+	int i;
+
+	/* LSB-first: addr, ~addr, cmd, ~cmd */
+	frame = (u32)addr
+		| ((u32)((u8)~addr) << 8)
+		| ((u32)cmd << 16)
+		| ((u32)((u8)~cmd) << 24);
+
+	/* Header */
+	pat[n++] = 9000;
+	pat[n++] = 4500;
+
+	for (i = 0; i < 32; i++) {
+		pat[n++] = 560; /* mark */
+		if (frame & (1U << i))
+			pat[n++] = 1690; /* bit1 space */
+		else
+			pat[n++] = 560; /* bit0 space */
+	}
+
+	/* Trailing mark */
+	pat[n++] = 560;
+
+	/* Inter-frame gap then classic NEC repeat */
+	pat[n++] = 40000;
+	pat[n++] = 9000;
+	pat[n++] = 2250;
+	pat[n++] = 560;
+
+	return n;
+}
 
 static int codec_debug_open(struct inode *inode, struct file *file)
 {
@@ -825,6 +870,110 @@ static const struct file_operations irrc_timing_ops = {
 	.release = single_release,
 	.write = irrc_timing_write,
 };
+
+static ssize_t irrc_nec_test_read(struct file *file, char __user *ubuf,
+		size_t count, loff_t *ppos)
+{
+	static const char help[] =
+		"Usage:\n"
+		"  echo lg > nec_test           # LG power addr=0x04 cmd=0x08\n"
+		"  echo lg 04 08 > nec_test     # same\n"
+		"  echo lg 20 08 > nec_test     # alternate LG addr\n"
+		"  echo nec AA CC > nec_test    # arbitrary NEC addr/cmd\n"
+		"Carrier 38000 Hz, duty 50%, NEC frame + repeat\n";
+
+	return simple_read_from_buffer(ubuf, count, ppos, help, sizeof(help) - 1);
+}
+
+static ssize_t irrc_nec_test_write(struct file *file, const char __user *ubuf,
+		size_t cnt, loff_t *ppos)
+{
+	char lbuf[48];
+	char *p;
+	char *tok;
+	unsigned long val;
+	u8 addr = 0x04;
+	u8 cmd = 0x08;
+	int pattern[NEC_TEST_PATTERN_MAX];
+	int count;
+	struct irrc_transmit_params xmit;
+	struct timed_irrc_data *irrc;
+	int rc;
+
+	if (!irrc_dev_ptr)
+		return -ENODEV;
+
+	if (cnt > sizeof(lbuf) - 1)
+		return -EINVAL;
+	if (copy_from_user(lbuf, ubuf, cnt))
+		return -EFAULT;
+	lbuf[cnt] = '\0';
+	p = lbuf;
+
+	tok = strsep(&p, " \t\r\n");
+	if (!tok || !*tok)
+		return -EINVAL;
+
+	if (!strcmp(tok, "lg")) {
+		/* Default classic LG TV power; optional "lg AA CC". */
+		tok = strsep(&p, " \t\r\n");
+		if (tok && *tok) {
+			if (strict_strtoul(tok, 16, &val) || val > 0xff)
+				return -EINVAL;
+			addr = (u8)val;
+			tok = strsep(&p, " \t\r\n");
+			if (!tok || !*tok)
+				return -EINVAL;
+			if (strict_strtoul(tok, 16, &val) || val > 0xff)
+				return -EINVAL;
+			cmd = (u8)val;
+		}
+	} else if (!strcmp(tok, "nec")) {
+		tok = strsep(&p, " \t\r\n");
+		if (!tok || !*tok)
+			return -EINVAL;
+		if (strict_strtoul(tok, 16, &val) || val > 0xff)
+			return -EINVAL;
+		addr = (u8)val;
+		tok = strsep(&p, " \t\r\n");
+		if (!tok || !*tok)
+			return -EINVAL;
+		if (strict_strtoul(tok, 16, &val) || val > 0xff)
+			return -EINVAL;
+		cmd = (u8)val;
+	} else {
+		return -EINVAL;
+	}
+
+	PROBE_MSG("nec_test addr=0x%02x cmd=0x%02x\n", addr, cmd);
+
+	count = irrc_build_nec_pattern(pattern, addr, cmd);
+	memset(&xmit, 0, sizeof(xmit));
+	xmit.frequency = NEC_TEST_CARRIER_HZ;
+	xmit.duty = NEC_TEST_DUTY;
+	xmit.count = count;
+	xmit.pattern = NULL;
+
+	irrc = platform_get_drvdata(irrc_dev_ptr);
+#ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
+	mute_spk_for_swirrc(1);
+#endif
+	rc = android_irrc_transmit(irrc, &xmit, pattern);
+#ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
+	mute_spk_for_swirrc(0);
+#endif
+	if (rc)
+		return rc;
+	return cnt;
+}
+
+static const struct file_operations irrc_nec_test_ops = {
+	.owner = THIS_MODULE,
+	.open = codec_debug_open,
+	.read = irrc_nec_test_read,
+	.write = irrc_nec_test_write,
+	.llseek = default_llseek,
+};
 #endif
 
 #ifdef CONFIG_OF
@@ -952,6 +1101,10 @@ static int android_irrc_probe(struct platform_device *pdev)
 		debugfs_timing = debugfs_create_file("timing",
 				S_IFREG | S_IRUGO | S_IWUSR,
 				debugfs_wcd9xxx_dent, NULL, &irrc_timing_ops);
+		debugfs_nec_test = debugfs_create_file("nec_test",
+				S_IFREG | S_IRUGO | S_IWUSR | S_IWGRP,
+				debugfs_wcd9xxx_dent, (void *) "nec_test",
+				&irrc_nec_test_ops);
 	}
 #endif
 	return 0;
@@ -980,6 +1133,7 @@ static int android_irrc_remove(struct platform_device *pdev)
 	kfree(irrc);
 
 #ifdef CONFIG_DEBUG_FS
+	debugfs_remove(debugfs_nec_test);
 	debugfs_remove(debugfs_timing);
 	debugfs_remove(debugfs_poke);
 	debugfs_remove(debugfs_wcd9xxx_dent);
