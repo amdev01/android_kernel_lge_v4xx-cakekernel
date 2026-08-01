@@ -51,6 +51,8 @@
 #include <linux/of_gpio.h>
 #include <linux/clk.h>
 #include <linux/regulator/consumer.h>
+#include <linux/ktime.h>
+#include <linux/seq_file.h>
 
 /*
     For ADB debugging
@@ -100,8 +102,50 @@ static bool g_irrc_powered = false;
 static bool g_irrc_clk_armed = false;
 static int g_pwm_clk;
 static int g_pwm_duty;
+/* Cached RCGR N/D so mark edges only toggle ROOT_EN when carrier unchanged. */
+static int g_pwm_n = -1;
+static int g_pwm_d = -1;
+static bool g_pwm_root_on = false;
+
+/*
+ * Hot-path timing capture (no printk). Read after a transmit:
+ *   cat /sys/kernel/debug/sw_irrc/timing
+ * Write "reset" to clear. NEC expects ~560/1690 us marks and ~560/4500/9000 spaces.
+ */
+#define IRRC_TIMING_MAX 256
+static u64 g_edge_ns[IRRC_TIMING_MAX];
+static u8 g_edge_on[IRRC_TIMING_MAX];
+static unsigned g_edge_count;
+static unsigned g_edge_dropped;
+static DEFINE_SPINLOCK(g_timing_lock);
 
 static int android_irrc_set_pwm(int enable, int PWM_CLK, int duty);
+
+static void android_irrc_timing_reset(void)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&g_timing_lock, flags);
+	g_edge_count = 0;
+	g_edge_dropped = 0;
+	spin_unlock_irqrestore(&g_timing_lock, flags);
+}
+
+static void android_irrc_timing_edge(int on)
+{
+	unsigned long flags;
+	u64 now = ktime_to_ns(ktime_get());
+
+	spin_lock_irqsave(&g_timing_lock, flags);
+	if (g_edge_count < IRRC_TIMING_MAX) {
+		g_edge_ns[g_edge_count] = now;
+		g_edge_on[g_edge_count] = on ? 1 : 0;
+		g_edge_count++;
+	} else {
+		g_edge_dropped++;
+	}
+	spin_unlock_irqrestore(&g_timing_lock, flags);
+}
 
 static void android_irrc_power_on(struct timed_irrc_data *irrc)
 {
@@ -160,6 +204,9 @@ static void android_irrc_disarm(struct timed_irrc_data *irrc)
 	}
 	gpio_high_flag = 0;
 	g_pwm_enabled = false;
+	g_pwm_n = -1;
+	g_pwm_d = -1;
+	g_pwm_root_on = false;
 }
 
 /*
@@ -184,6 +231,10 @@ static void android_irrc_pwm_gate(struct timed_irrc_data *irrc, int on,
 					GPIO_CFG_ENABLE);
 			clk_prepare_enable(irrc->gp_clk);
 			g_irrc_clk_armed = true;
+			/* Force RCGR N/D program on first mark of a burst. */
+			g_pwm_n = -1;
+			g_pwm_d = -1;
+			g_pwm_root_on = false;
 		}
 		g_pwm_clk = PWM_CLK;
 		g_pwm_duty = duty;
@@ -230,29 +281,44 @@ static int android_irrc_set_pwm(int enable,int PWM_CLK, int duty)
 	INFO_MSG("enable:%d, pwm_clk:%d, duty:%d, M:%d,N:%d,D:%d\n", enable,PWM_CLK,duty, M_VAL,N_VAL,D_VAL);
 
 	if (enable) {
-		REG_WRITEL(
-			((~(N_VAL-M_VAL)) & 0xffU),	/* N[7:0] */
-			MMSS_GP0_CMD_RCGR(0x0C));
-		REG_WRITEL(
-			((~(D_VAL << 1)) & 0xffU),	/* D[7:0] */
-			MMSS_GP0_CMD_RCGR(0x10));
+		/* N/D stay valid across ROOT_EN clear; only rewrite if carrier changed. */
+		if (N_VAL != g_pwm_n || D_VAL != g_pwm_d) {
+			REG_WRITEL(
+				((~(N_VAL-M_VAL)) & 0xffU),	/* N[7:0] */
+				MMSS_GP0_CMD_RCGR(0x0C));
+			REG_WRITEL(
+				((~(D_VAL << 1)) & 0xffU),	/* D[7:0] */
+				MMSS_GP0_CMD_RCGR(0x10));
+			g_pwm_n = N_VAL;
+			g_pwm_d = D_VAL;
+		}
 		REG_WRITEL(
 			(1 << 1U) + /* ROOT_EN[1] */
 			(1),		/* UPDATE[0] */
 			MMSS_GP0_CMD_RCGR(0));
+		g_pwm_root_on = true;
 	} else {
 		REG_WRITEL(
 			(0 << 1U) + /* ROOT_EN[1] */
 			(0),		/* UPDATE[0] */
 			MMSS_GP0_CMD_RCGR(0));
+		g_pwm_root_on = false;
 	}
 	return 0;
 }
 
 static void android_irrc_enable_pwm(struct timed_irrc_data *irrc, int PWM_CLK, int duty)
 {
-	/* Cancel idle disarm/poweroff; keep rails and clk across mark/space. */
-	cancel_delayed_work_sync(&irrc->gpio_off_work);
+	/*
+	 * Non-sync cancel: never sleep on the mark/space hot path. Pending idle
+	 * work is dropped; an already-running disarm finishes and the next
+	 * enable re-arms clk/rails as needed.
+	 */
+	cancel_delayed_work(&irrc->gpio_off_work);
+
+	/* New burst after idle — reset timing capture for debugfs. */
+	if (!g_pwm_enabled && !g_irrc_clk_armed)
+		android_irrc_timing_reset();
 
 	android_irrc_power_on(irrc);
 
@@ -286,6 +352,7 @@ static void android_irrc_enable_pwm(struct timed_irrc_data *irrc, int PWM_CLK, i
 		android_irrc_pwm_gate(irrc, 1, PWM_CLK, duty);
 	}
 	g_pwm_enabled = true;
+	android_irrc_timing_edge(1);
 }
 
 static void android_irrc_gate_carrier_off(struct timed_irrc_data *irrc)
@@ -295,6 +362,7 @@ static void android_irrc_gate_carrier_off(struct timed_irrc_data *irrc)
 
 	android_irrc_pwm_gate(irrc, 0, g_pwm_clk, g_pwm_duty);
 	g_pwm_enabled = false;
+	android_irrc_timing_edge(0);
 }
 
 static void android_irrc_disable_pwm(struct work_struct *work)
@@ -356,8 +424,9 @@ static long android_irrc_ioctl(struct file *file, unsigned int cmd, unsigned lon
 		/*
 		 * Gate carrier immediately (ROOT_EN off / gpio low) without
 		 * clk_disable. Full disarm + rails drop after 100 ms idle.
+		 * Use non-sync cancel — never block the space edge.
 		 */
-		cancel_delayed_work_sync(&irrc->gpio_off_work);
+		cancel_delayed_work(&irrc->gpio_off_work);
 		android_irrc_gate_carrier_off(irrc);
 		queue_delayed_work(irrc->workqueue, &irrc->gpio_off_work,
 				msecs_to_jiffies(100));
@@ -396,6 +465,7 @@ struct miscdevice irrc_misc = {
 #ifdef CONFIG_DEBUG_FS
 static struct dentry *debugfs_wcd9xxx_dent;
 static struct dentry *debugfs_poke;
+static struct dentry *debugfs_timing;
 
 static int codec_debug_open(struct inode *inode, struct file *file)
 {
@@ -460,7 +530,7 @@ static ssize_t codec_debug_write(struct file *filp,
 
 		case 0:
 			INFO_MSG("IRRC_STOP\n");
-			cancel_delayed_work_sync(&irrc->gpio_off_work);
+			cancel_delayed_work(&irrc->gpio_off_work);
 			android_irrc_gate_carrier_off(irrc);
 			queue_delayed_work(irrc->workqueue, &irrc->gpio_off_work,
 					msecs_to_jiffies(100));
@@ -482,6 +552,108 @@ static ssize_t codec_debug_write(struct file *filp,
 static const struct file_operations codec_debug_ops = {
 	.open = codec_debug_open,
 	.write = codec_debug_write,
+};
+
+static int irrc_timing_show(struct seq_file *s, void *unused)
+{
+	unsigned long flags;
+	unsigned i, n;
+	u64 edges[IRRC_TIMING_MAX];
+	u8 on[IRRC_TIMING_MAX];
+	unsigned dropped;
+	u64 mark_min = ~0ULL, mark_max = 0, mark_sum = 0;
+	u64 space_min = ~0ULL, space_max = 0, space_sum = 0;
+	unsigned marks = 0, spaces = 0;
+
+	spin_lock_irqsave(&g_timing_lock, flags);
+	n = g_edge_count;
+	dropped = g_edge_dropped;
+	for (i = 0; i < n; i++) {
+		edges[i] = g_edge_ns[i];
+		on[i] = g_edge_on[i];
+	}
+	spin_unlock_irqrestore(&g_timing_lock, flags);
+
+	seq_printf(s, "edges=%u dropped=%u (IRRC_INFO_PRINT=0; durations in us)\n",
+			n, dropped);
+	seq_printf(s, "# idx state delta_us abs_us\n");
+
+	for (i = 0; i < n; i++) {
+		u64 abs_us = edges[i] / 1000ULL;
+		u64 delta_us = 0;
+
+		if (i > 0)
+			delta_us = (edges[i] - edges[i - 1]) / 1000ULL;
+
+		seq_printf(s, "%u %s %llu %llu\n", i,
+				on[i] ? "mark" : "space",
+				(unsigned long long)delta_us,
+				(unsigned long long)abs_us);
+
+		/* Duration of completed pulse is delta into the next opposite edge. */
+		if (i > 0) {
+			if (on[i - 1]) {
+				if (delta_us < mark_min)
+					mark_min = delta_us;
+				if (delta_us > mark_max)
+					mark_max = delta_us;
+				mark_sum += delta_us;
+				marks++;
+			} else {
+				if (delta_us < space_min)
+					space_min = delta_us;
+				if (delta_us > space_max)
+					space_max = delta_us;
+				space_sum += delta_us;
+				spaces++;
+			}
+		}
+	}
+
+	if (marks) {
+		seq_printf(s, "mark_us: n=%u min=%llu avg=%llu max=%llu (NEC ~560/1690)\n",
+				marks,
+				(unsigned long long)mark_min,
+				(unsigned long long)(mark_sum / marks),
+				(unsigned long long)mark_max);
+	}
+	if (spaces) {
+		seq_printf(s, "space_us: n=%u min=%llu avg=%llu max=%llu (NEC ~560/4500/9000)\n",
+				spaces,
+				(unsigned long long)space_min,
+				(unsigned long long)(space_sum / spaces),
+				(unsigned long long)space_max);
+	}
+	return 0;
+}
+
+static int irrc_timing_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, irrc_timing_show, inode->i_private);
+}
+
+static ssize_t irrc_timing_write(struct file *file, const char __user *ubuf,
+		size_t cnt, loff_t *ppos)
+{
+	char lbuf[16];
+
+	if (cnt > sizeof(lbuf) - 1)
+		return -EINVAL;
+	if (copy_from_user(lbuf, ubuf, cnt))
+		return -EFAULT;
+	lbuf[cnt] = '\0';
+	if (!strncmp(lbuf, "reset", 5))
+		android_irrc_timing_reset();
+	return cnt;
+}
+
+static const struct file_operations irrc_timing_ops = {
+	.owner = THIS_MODULE,
+	.open = irrc_timing_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+	.write = irrc_timing_write,
 };
 #endif
 
@@ -603,7 +775,13 @@ static int android_irrc_probe(struct platform_device *pdev)
 #ifdef CONFIG_DEBUG_FS
 	debugfs_wcd9xxx_dent = debugfs_create_dir("sw_irrc", 0);
 	if (!IS_ERR(debugfs_wcd9xxx_dent)) {
-		debugfs_poke = debugfs_create_file("poke", S_IFREG | S_IRUGO, debugfs_wcd9xxx_dent, (void *) "poke", &codec_debug_ops);
+		debugfs_poke = debugfs_create_file("poke",
+				S_IFREG | S_IWUSR | S_IWGRP,
+				debugfs_wcd9xxx_dent, (void *) "poke",
+				&codec_debug_ops);
+		debugfs_timing = debugfs_create_file("timing",
+				S_IFREG | S_IRUGO | S_IWUSR,
+				debugfs_wcd9xxx_dent, NULL, &irrc_timing_ops);
 	}
 #endif
 	return 0;
@@ -632,6 +810,7 @@ static int android_irrc_remove(struct platform_device *pdev)
 	kfree(irrc);
 
 #ifdef CONFIG_DEBUG_FS
+	debugfs_remove(debugfs_timing);
 	debugfs_remove(debugfs_poke);
 	debugfs_remove(debugfs_wcd9xxx_dent);
 #endif
