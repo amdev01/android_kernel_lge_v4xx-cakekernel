@@ -105,10 +105,17 @@ static bool g_irrc_powered = false;
 static bool g_irrc_clk_armed = false;
 static int g_pwm_clk;
 static int g_pwm_duty;
-/* Cached RCGR N/D so mark edges only toggle ROOT_EN when carrier unchanged. */
-static int g_pwm_n = -1;
-static int g_pwm_d = -1;
 static bool g_pwm_root_on = false;
+/*
+ * Invert mark/space envelope (carrier on during ConsumerIr "space"). Useful if
+ * the LED driver is active-low relative to ROOT_EN. Default off (carrier during
+ * mark). Built-in (CONFIG_ANDROID_SW_IRRC=y) may lack
+ * /sys/module/android_irrc/parameters/invert — use debugfs instead:
+ *   echo 1 > /sys/kernel/debug/sw_irrc/invert
+ */
+static bool invert_carrier;
+module_param_named(invert, invert_carrier, bool, 0644);
+MODULE_PARM_DESC(invert, "Invert IR mark/space envelope (carrier during space)");
 
 /*
  * Hot-path timing capture (no printk). Read after a transmit:
@@ -207,8 +214,6 @@ static void android_irrc_disarm(struct timed_irrc_data *irrc)
 	}
 	gpio_high_flag = 0;
 	g_pwm_enabled = false;
-	g_pwm_n = -1;
-	g_pwm_d = -1;
 	g_pwm_root_on = false;
 }
 
@@ -219,32 +224,33 @@ static void android_irrc_disarm(struct timed_irrc_data *irrc)
 static void android_irrc_pwm_gate(struct timed_irrc_data *irrc, int on,
 		int PWM_CLK, int duty)
 {
+	int carrier = invert_carrier ? !on : on;
+
 	if (gpio_high_flag == 1) {
-		gpio_set_value(irrc->pwm_gpio, on ? 1 : 0);
+		gpio_set_value(irrc->pwm_gpio, carrier ? 1 : 0);
 		return;
 	}
 
-	if (on) {
-		if (!g_irrc_clk_armed) {
-			gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio,
-						irrc->pwm_gpio_func,
-						GPIO_CFG_OUTPUT,
-						GPIO_CFG_NO_PULL,
-						GPIO_CFG_2MA),
-					GPIO_CFG_ENABLE);
-			clk_prepare_enable(irrc->gp_clk);
-			g_irrc_clk_armed = true;
-			/* Force RCGR N/D program on first mark of a burst. */
-			g_pwm_n = -1;
-			g_pwm_d = -1;
-			g_pwm_root_on = false;
-		}
-		g_pwm_clk = PWM_CLK;
-		g_pwm_duty = duty;
-		android_irrc_set_pwm(1, PWM_CLK, duty);
-	} else if (g_irrc_clk_armed) {
-		android_irrc_set_pwm(0, g_pwm_clk, g_pwm_duty);
+	/*
+	 * Arm mux/clk on first gate of a burst regardless of polarity. With
+	 * invert, the first logical mark requests carrier=0; if we only armed
+	 * when carrier==1, clk would stay down and ROOT_EN would never toggle.
+	 */
+	if (!g_irrc_clk_armed) {
+		gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio,
+					irrc->pwm_gpio_func,
+					GPIO_CFG_OUTPUT,
+					GPIO_CFG_NO_PULL,
+					GPIO_CFG_2MA),
+				GPIO_CFG_ENABLE);
+		clk_prepare_enable(irrc->gp_clk);
+		g_irrc_clk_armed = true;
+		g_pwm_root_on = false;
 	}
+
+	g_pwm_clk = PWM_CLK;
+	g_pwm_duty = duty;
+	android_irrc_set_pwm(carrier ? 1 : 0, PWM_CLK, duty);
 }
 
 static struct gpiomux_setting irrc_active = {
@@ -276,6 +282,21 @@ static int android_irrc_set_pwm(int enable,int PWM_CLK, int duty)
 	int N_VAL = 1;
 	int D_VAL = 1;
 
+	if (!enable) {
+		/* ROOT_EN is not shadowed; UPDATE=0 matches stock ImmVibe/IRRC. */
+		REG_WRITEL(
+			(0 << 1U) + /* ROOT_EN[1] */
+			(0),		/* UPDATE[0] */
+			MMSS_GP0_CMD_RCGR(0));
+		wmb();
+		g_pwm_root_on = false;
+		return 0;
+	}
+
+	/* Must not divide by zero if called before g_pwm_clk is latched. */
+	if (PWM_CLK <= 0)
+		return -EINVAL;
+
 	N_VAL = (9600+PWM_CLK)/(PWM_CLK*2); //Formular in case SRC is 19.2Mhz. N_VAL = SRC/(div*PWM_CLK) + 0.5
 	D_VAL = (N_VAL*duty+50)/100;
 	if (D_VAL == 0)
@@ -283,30 +304,25 @@ static int android_irrc_set_pwm(int enable,int PWM_CLK, int duty)
 
 	INFO_MSG("enable:%d, pwm_clk:%d, duty:%d, M:%d,N:%d,D:%d\n", enable,PWM_CLK,duty, M_VAL,N_VAL,D_VAL);
 
-	if (enable) {
-		/* N/D stay valid across ROOT_EN clear; only rewrite if carrier changed. */
-		if (N_VAL != g_pwm_n || D_VAL != g_pwm_d) {
-			REG_WRITEL(
-				((~(N_VAL-M_VAL)) & 0xffU),	/* N[7:0] */
-				MMSS_GP0_CMD_RCGR(0x0C));
-			REG_WRITEL(
-				((~(D_VAL << 1)) & 0xffU),	/* D[7:0] */
-				MMSS_GP0_CMD_RCGR(0x10));
-			g_pwm_n = N_VAL;
-			g_pwm_d = D_VAL;
-		}
-		REG_WRITEL(
-			(1 << 1U) + /* ROOT_EN[1] */
-			(1),		/* UPDATE[0] */
-			MMSS_GP0_CMD_RCGR(0));
-		g_pwm_root_on = true;
-	} else {
-		REG_WRITEL(
-			(0 << 1U) + /* ROOT_EN[1] */
-			(0),		/* UPDATE[0] */
-			MMSS_GP0_CMD_RCGR(0));
-		g_pwm_root_on = false;
-	}
+	/*
+	 * Always rewrite N/D before ROOT_EN|UPDATE. Skipping N/D after a
+	 * ROOT_EN clear (cache optimization) left the carrier dead on later
+	 * marks on this RCG — nec_test "succeeded" with edges recorded but
+	 * little/no IR after the first pulse.
+	 */
+	REG_WRITEL(
+		((~(N_VAL-M_VAL)) & 0xffU),	/* N[7:0] */
+		MMSS_GP0_CMD_RCGR(0x0C));
+	REG_WRITEL(
+		((~(D_VAL << 1)) & 0xffU),	/* D[7:0] */
+		MMSS_GP0_CMD_RCGR(0x10));
+	REG_WRITEL(
+		(1 << 1U) + /* ROOT_EN[1] */
+		(1),		/* UPDATE[0] */
+		MMSS_GP0_CMD_RCGR(0));
+	/* Ensure the enable is visible before the busy-wait starts. */
+	wmb();
+	g_pwm_root_on = true;
 	return 0;
 }
 
@@ -363,7 +379,15 @@ static void android_irrc_gate_carrier_off(struct timed_irrc_data *irrc)
 	if (!g_pwm_enabled)
 		return;
 
-	android_irrc_pwm_gate(irrc, 0, g_pwm_clk, g_pwm_duty);
+	/*
+	 * Force physical carrier off (ignore invert). End-of-burst / IRRC_STOP
+	 * must not leave ROOT_EN on for 100 ms when invert_carrier is set.
+	 */
+	if (gpio_high_flag == 1)
+		gpio_set_value(irrc->pwm_gpio, 0);
+	else if (g_irrc_clk_armed)
+		android_irrc_set_pwm(0, g_pwm_clk, g_pwm_duty);
+
 	g_pwm_enabled = false;
 	android_irrc_timing_edge(0);
 }
@@ -374,13 +398,13 @@ static void android_irrc_gate_carrier_off(struct timed_irrc_data *irrc)
  *
  * Use only addition on ktime (CONFIG_KTIME_SCALAR) — never u64 / u64, which
  * pulls in __aeabi_uldivmod on ARM EABI and is not linked into the kernel.
- * Hold preempt only for short NEC marks/spaces; longer gaps (>3 ms) may
- * schedule so we do not soft-lock the CPU on inter-frame delays.
+ * Hold preempt for NEC header/mark/space (<=12 ms). Longer gaps (e.g. 40 ms
+ * inter-frame) may schedule so we do not soft-lock the CPU.
  */
 static void irrc_busy_wait_us(unsigned int us)
 {
 	ktime_t end = ktime_add_ns(ktime_get(), (u64)us * 1000ULL);
-	int tight = (us <= 3000);
+	int tight = (us <= 12000);
 
 	if (tight)
 		preempt_disable();
@@ -441,8 +465,6 @@ static int android_irrc_transmit(struct timed_irrc_data *irrc,
 					GPIO_CFG_ENABLE);
 			clk_prepare_enable(irrc->gp_clk);
 			g_irrc_clk_armed = true;
-			g_pwm_n = -1;
-			g_pwm_d = -1;
 			g_pwm_root_on = false;
 		}
 		g_pwm_clk = freq_khz;
@@ -626,6 +648,7 @@ static struct dentry *debugfs_wcd9xxx_dent;
 static struct dentry *debugfs_poke;
 static struct dentry *debugfs_timing;
 static struct dentry *debugfs_nec_test;
+static struct dentry *debugfs_invert;
 
 /*
  * NEC frame + optional repeat for HITL:
@@ -871,6 +894,51 @@ static const struct file_operations irrc_timing_ops = {
 	.write = irrc_timing_write,
 };
 
+static ssize_t irrc_invert_read(struct file *file, char __user *ubuf,
+		size_t count, loff_t *ppos)
+{
+	char buf[3];
+
+	buf[0] = invert_carrier ? '1' : '0';
+	buf[1] = '\n';
+	buf[2] = '\0';
+	return simple_read_from_buffer(ubuf, count, ppos, buf, 2);
+}
+
+static ssize_t irrc_invert_write(struct file *file, const char __user *ubuf,
+		size_t cnt, loff_t *ppos)
+{
+	char lbuf[8];
+	char *p;
+	char *tok;
+
+	if (cnt > sizeof(lbuf) - 1)
+		return -EINVAL;
+	if (copy_from_user(lbuf, ubuf, cnt))
+		return -EFAULT;
+	lbuf[cnt] = '\0';
+	p = lbuf;
+	tok = strsep(&p, " \t\r\n");
+	if (!tok || !*tok)
+		return -EINVAL;
+	if (!strcmp(tok, "0"))
+		invert_carrier = false;
+	else if (!strcmp(tok, "1"))
+		invert_carrier = true;
+	else
+		return -EINVAL;
+	PROBE_MSG("invert_carrier=%d\n", invert_carrier);
+	return cnt;
+}
+
+static const struct file_operations irrc_invert_ops = {
+	.owner = THIS_MODULE,
+	.open = codec_debug_open,
+	.read = irrc_invert_read,
+	.write = irrc_invert_write,
+	.llseek = default_llseek,
+};
+
 static ssize_t irrc_nec_test_read(struct file *file, char __user *ubuf,
 		size_t count, loff_t *ppos)
 {
@@ -880,9 +948,58 @@ static ssize_t irrc_nec_test_read(struct file *file, char __user *ubuf,
 		"  echo lg 04 08 > nec_test     # same\n"
 		"  echo lg 20 08 > nec_test     # alternate LG addr\n"
 		"  echo nec AA CC > nec_test    # arbitrary NEC addr/cmd\n"
-		"Carrier 38000 Hz, duty 50%, NEC frame + repeat\n";
+		"  echo lgscan > nec_test       # try common LG power codes\n"
+		"Carrier 38000 Hz, duty 50%, NEC frame + repeat\n"
+		"Then: cat /sys/kernel/debug/sw_irrc/timing\n"
+		"If no IR: echo 1 > /sys/kernel/debug/sw_irrc/invert\n";
 
 	return simple_read_from_buffer(ubuf, count, ppos, help, sizeof(help) - 1);
+}
+
+/* Common LG TV power NEC addr/cmd pairs for HITL lgscan. */
+static const u8 irrc_lgscan_codes[][2] = {
+	{ 0x04, 0x08 },
+	{ 0x20, 0x08 },
+	{ 0x00, 0x08 },
+	{ 0x10, 0x08 },
+	{ 0x08, 0x08 },
+	{ 0x40, 0x08 },
+	{ 0x14, 0x08 }, /* app default addr */
+	{ 0x20, 0x10 },
+};
+
+static int irrc_nec_test_xmit_one(struct timed_irrc_data *irrc, u8 addr, u8 cmd)
+{
+	int pattern[NEC_TEST_PATTERN_MAX];
+	int count;
+	struct irrc_transmit_params xmit;
+	int rc;
+	unsigned long flags;
+	unsigned edges, dropped;
+
+	PROBE_MSG("nec_test addr=0x%02x cmd=0x%02x invert=%d (transmitting)\n",
+			addr, cmd, invert_carrier);
+
+	count = irrc_build_nec_pattern(pattern, addr, cmd);
+	memset(&xmit, 0, sizeof(xmit));
+	xmit.frequency = NEC_TEST_CARRIER_HZ;
+	xmit.duty = NEC_TEST_DUTY;
+	xmit.count = count;
+	xmit.pattern = NULL;
+
+	rc = android_irrc_transmit(irrc, &xmit, pattern);
+	if (rc) {
+		PROBE_MSG("nec_test FAILED rc=%d\n", rc);
+		return rc;
+	}
+
+	spin_lock_irqsave(&g_timing_lock, flags);
+	edges = g_edge_count;
+	dropped = g_edge_dropped;
+	spin_unlock_irqrestore(&g_timing_lock, flags);
+	PROBE_MSG("nec_test ok count=%d edges=%u dropped=%u\n",
+			count, edges, dropped);
+	return 0;
 }
 
 static ssize_t irrc_nec_test_write(struct file *file, const char __user *ubuf,
@@ -894,11 +1011,9 @@ static ssize_t irrc_nec_test_write(struct file *file, const char __user *ubuf,
 	unsigned long val;
 	u8 addr = 0x04;
 	u8 cmd = 0x08;
-	int pattern[NEC_TEST_PATTERN_MAX];
-	int count;
-	struct irrc_transmit_params xmit;
 	struct timed_irrc_data *irrc;
 	int rc;
+	int i;
 
 	if (!irrc_dev_ptr)
 		return -ENODEV;
@@ -913,6 +1028,33 @@ static ssize_t irrc_nec_test_write(struct file *file, const char __user *ubuf,
 	tok = strsep(&p, " \t\r\n");
 	if (!tok || !*tok)
 		return -EINVAL;
+
+	irrc = platform_get_drvdata(irrc_dev_ptr);
+
+	if (!strcmp(tok, "lgscan")) {
+#ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
+		mute_spk_for_swirrc(1);
+#endif
+		for (i = 0; i < ARRAY_SIZE(irrc_lgscan_codes); i++) {
+			addr = irrc_lgscan_codes[i][0];
+			cmd = irrc_lgscan_codes[i][1];
+			rc = irrc_nec_test_xmit_one(irrc, addr, cmd);
+			if (rc) {
+#ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
+				mute_spk_for_swirrc(0);
+#endif
+				return rc;
+			}
+			if (i + 1 < ARRAY_SIZE(irrc_lgscan_codes))
+				msleep(150);
+		}
+#ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
+		mute_spk_for_swirrc(0);
+#endif
+		PROBE_MSG("nec_test lgscan done (%d codes)\n",
+				(int)ARRAY_SIZE(irrc_lgscan_codes));
+		return cnt;
+	}
 
 	if (!strcmp(tok, "lg")) {
 		/* Default classic LG TV power; optional "lg AA CC". */
@@ -945,20 +1087,10 @@ static ssize_t irrc_nec_test_write(struct file *file, const char __user *ubuf,
 		return -EINVAL;
 	}
 
-	PROBE_MSG("nec_test addr=0x%02x cmd=0x%02x\n", addr, cmd);
-
-	count = irrc_build_nec_pattern(pattern, addr, cmd);
-	memset(&xmit, 0, sizeof(xmit));
-	xmit.frequency = NEC_TEST_CARRIER_HZ;
-	xmit.duty = NEC_TEST_DUTY;
-	xmit.count = count;
-	xmit.pattern = NULL;
-
-	irrc = platform_get_drvdata(irrc_dev_ptr);
 #ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
 	mute_spk_for_swirrc(1);
 #endif
-	rc = android_irrc_transmit(irrc, &xmit, pattern);
+	rc = irrc_nec_test_xmit_one(irrc, addr, cmd);
 #ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
 	mute_spk_for_swirrc(0);
 #endif
@@ -1105,6 +1237,10 @@ static int android_irrc_probe(struct platform_device *pdev)
 				S_IFREG | S_IRUGO | S_IWUSR | S_IWGRP,
 				debugfs_wcd9xxx_dent, (void *) "nec_test",
 				&irrc_nec_test_ops);
+		debugfs_invert = debugfs_create_file("invert",
+				S_IFREG | S_IRUGO | S_IWUSR | S_IWGRP,
+				debugfs_wcd9xxx_dent, (void *) "invert",
+				&irrc_invert_ops);
 	}
 #endif
 	return 0;
@@ -1133,6 +1269,7 @@ static int android_irrc_remove(struct platform_device *pdev)
 	kfree(irrc);
 
 #ifdef CONFIG_DEBUG_FS
+	debugfs_remove(debugfs_invert);
 	debugfs_remove(debugfs_nec_test);
 	debugfs_remove(debugfs_timing);
 	debugfs_remove(debugfs_poke);
