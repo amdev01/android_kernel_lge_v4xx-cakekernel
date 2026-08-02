@@ -131,6 +131,30 @@ static DEFINE_SPINLOCK(g_timing_lock);
 
 static int android_irrc_set_pwm(int enable, int PWM_CLK, int duty);
 
+/*
+ * Board gpiomux for GPIO 33 (D_IRRC_TXD) uses 6 mA. Match that whenever we
+ * program TLMM so poke / PWM arm can actually drive the LED transistor.
+ */
+#define IRRC_GPIO_DRV	GPIO_CFG_6MA
+
+/*
+ * gpiolib direction must be OUTPUT before gpio_set_value sticks. Probe used to
+ * only gpio_request(); debugfs then showed "in hi" and the camera saw no IR.
+ */
+static int android_irrc_gpio_set(struct timed_irrc_data *irrc, int value)
+{
+	int rc;
+
+	rc = gpio_direction_output(irrc->pwm_gpio, value);
+	if (rc) {
+		ERR_MSG("gpio_direction_output(%d, %d) failed rc=%d\n",
+				irrc->pwm_gpio, value, rc);
+		return rc;
+	}
+	gpio_set_value(irrc->pwm_gpio, value);
+	return 0;
+}
+
 static void android_irrc_timing_reset(void)
 {
 	unsigned long flags;
@@ -157,30 +181,34 @@ static void android_irrc_timing_edge(int on)
 	spin_unlock_irqrestore(&g_timing_lock, flags);
 }
 
-static void android_irrc_power_on(struct timed_irrc_data *irrc)
+/* Returns 0 on success; hard-fails transmit/enable if L19 (vreg_irrc) fails. */
+static int android_irrc_power_on(struct timed_irrc_data *irrc)
 {
 	int rc;
-	bool ok = true;
 
 	if (g_irrc_powered)
-		return;
+		return 0;
 
 	if (irrc->vreg != NULL) {
 		rc = regulator_enable(irrc->vreg);
 		if (rc < 0) {
-			ERR_MSG("regulator_enable failed\n");
-			ok = false;
+			ERR_MSG("regulator_enable(vreg_irrc/L19) failed rc=%d — abort IR\n",
+					rc);
+			return rc;
 		}
 	}
 	if (irrc->vreg2 != NULL) {
 		rc = regulator_enable(irrc->vreg2);
 		if (rc < 0) {
-			ERR_MSG("regulator_enable failed2\n");
-			ok = false;
+			ERR_MSG("regulator_enable(vreg2_irrc) failed rc=%d — abort IR\n",
+					rc);
+			if (irrc->vreg != NULL)
+				regulator_disable(irrc->vreg);
+			return rc;
 		}
 	}
-	if (ok)
-		g_irrc_powered = true;
+	g_irrc_powered = true;
+	return 0;
 }
 
 static void android_irrc_power_off(struct timed_irrc_data *irrc)
@@ -206,7 +234,7 @@ static void android_irrc_power_off(struct timed_irrc_data *irrc)
 static void android_irrc_disarm(struct timed_irrc_data *irrc)
 {
 	if (gpio_high_flag == 1) {
-		gpio_set_value(irrc->pwm_gpio, 0);
+		android_irrc_gpio_set(irrc, 0);
 	} else if (g_irrc_clk_armed) {
 		android_irrc_set_pwm(0, g_pwm_clk, g_pwm_duty);
 		clk_disable_unprepare(irrc->gp_clk);
@@ -227,7 +255,7 @@ static void android_irrc_pwm_gate(struct timed_irrc_data *irrc, int on,
 	int carrier = invert_carrier ? !on : on;
 
 	if (gpio_high_flag == 1) {
-		gpio_set_value(irrc->pwm_gpio, carrier ? 1 : 0);
+		android_irrc_gpio_set(irrc, carrier ? 1 : 0);
 		return;
 	}
 
@@ -241,7 +269,7 @@ static void android_irrc_pwm_gate(struct timed_irrc_data *irrc, int on,
 					irrc->pwm_gpio_func,
 					GPIO_CFG_OUTPUT,
 					GPIO_CFG_NO_PULL,
-					GPIO_CFG_2MA),
+					IRRC_GPIO_DRV),
 				GPIO_CFG_ENABLE);
 		clk_prepare_enable(irrc->gp_clk);
 		g_irrc_clk_armed = true;
@@ -255,13 +283,13 @@ static void android_irrc_pwm_gate(struct timed_irrc_data *irrc, int on,
 
 static struct gpiomux_setting irrc_active = {
 	.func = 0, //[WX project] The value will be from device tree. GPIO for GP clock has alternative function.
-	.drv = GPIOMUX_DRV_2MA,
+	.drv = GPIOMUX_DRV_6MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
 
 static struct gpiomux_setting irrc_suspend = {
 	.func = GPIOMUX_FUNC_GPIO,
-	.drv = GPIOMUX_DRV_2MA,
+	.drv = GPIOMUX_DRV_6MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
 
@@ -326,8 +354,10 @@ static int android_irrc_set_pwm(int enable,int PWM_CLK, int duty)
 	return 0;
 }
 
-static void android_irrc_enable_pwm(struct timed_irrc_data *irrc, int PWM_CLK, int duty)
+static int android_irrc_enable_pwm(struct timed_irrc_data *irrc, int PWM_CLK, int duty)
 {
+	int rc;
+
 	/*
 	 * Non-sync cancel: never sleep on the mark/space hot path. Pending idle
 	 * work is dropped; an already-running disarm finishes and the next
@@ -339,7 +369,9 @@ static void android_irrc_enable_pwm(struct timed_irrc_data *irrc, int PWM_CLK, i
 	if (!g_pwm_enabled && !g_irrc_clk_armed)
 		android_irrc_timing_reset();
 
-	android_irrc_power_on(irrc);
+	rc = android_irrc_power_on(irrc);
+	if (rc)
+		return rc;
 
 	if ((PWM_CLK == 0) || (duty == 100)) {
 		INFO_MSG("gpio set to high!!!\n");
@@ -350,28 +382,34 @@ static void android_irrc_enable_pwm(struct timed_irrc_data *irrc, int PWM_CLK, i
 			gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio, 0,
 						GPIO_CFG_OUTPUT,
 						GPIO_CFG_NO_PULL,
-						GPIO_CFG_2MA),
+						IRRC_GPIO_DRV),
 					GPIO_CFG_ENABLE);
 			gpio_high_flag = 1;
 		}
-		gpio_set_value(irrc->pwm_gpio, 1);
+		/* Must be OUTPUT before set_value — poke 1 0 0 HITL path. */
+		rc = android_irrc_gpio_set(irrc, 1);
+		if (rc) {
+			android_irrc_power_off(irrc);
+			return rc;
+		}
 
 	} else if ((PWM_CLK < 23) || (PWM_CLK > 1200) ||
 			(duty > 60) || (duty < 20)) {
 		ERR_MSG("Out of range: pwm_clk=%d duty=%d\n", PWM_CLK, duty);
-		return;
+		return -EINVAL;
 
 	} else {
 		INFO_MSG("gpio set to gp!!!\n");
 
 		if (gpio_high_flag == 1) {
-			gpio_set_value(irrc->pwm_gpio, 0);
+			android_irrc_gpio_set(irrc, 0);
 			gpio_high_flag = 0;
 		}
 		android_irrc_pwm_gate(irrc, 1, PWM_CLK, duty);
 	}
 	g_pwm_enabled = true;
 	android_irrc_timing_edge(1);
+	return 0;
 }
 
 static void android_irrc_gate_carrier_off(struct timed_irrc_data *irrc)
@@ -384,7 +422,7 @@ static void android_irrc_gate_carrier_off(struct timed_irrc_data *irrc)
 	 * must not leave ROOT_EN on for 100 ms when invert_carrier is set.
 	 */
 	if (gpio_high_flag == 1)
-		gpio_set_value(irrc->pwm_gpio, 0);
+		android_irrc_gpio_set(irrc, 0);
 	else if (g_irrc_clk_armed)
 		android_irrc_set_pwm(0, g_pwm_clk, g_pwm_duty);
 
@@ -421,6 +459,7 @@ static int android_irrc_transmit(struct timed_irrc_data *irrc,
 	int duty = params->duty;
 	int gpio_mode;
 	int i;
+	int rc;
 
 	gpio_mode = (freq_khz == 0) || (duty == 100);
 
@@ -437,7 +476,9 @@ static int android_irrc_transmit(struct timed_irrc_data *irrc,
 	 */
 	cancel_delayed_work_sync(&irrc->gpio_off_work);
 	android_irrc_timing_reset();
-	android_irrc_power_on(irrc);
+	rc = android_irrc_power_on(irrc);
+	if (rc)
+		return rc;
 
 	/* Arm mux/clk (or GPIO) once before the pattern loop (may sleep). */
 	if (gpio_mode) {
@@ -447,13 +488,18 @@ static int android_irrc_transmit(struct timed_irrc_data *irrc,
 			gpio_tlmm_config(GPIO_CFG(irrc->pwm_gpio, 0,
 						GPIO_CFG_OUTPUT,
 						GPIO_CFG_NO_PULL,
-						GPIO_CFG_2MA),
+						IRRC_GPIO_DRV),
 					GPIO_CFG_ENABLE);
 			gpio_high_flag = 1;
 		}
+		rc = android_irrc_gpio_set(irrc, 0);
+		if (rc) {
+			android_irrc_power_off(irrc);
+			return rc;
+		}
 	} else {
 		if (gpio_high_flag == 1) {
-			gpio_set_value(irrc->pwm_gpio, 0);
+			android_irrc_gpio_set(irrc, 0);
 			gpio_high_flag = 0;
 		}
 		if (!g_irrc_clk_armed) {
@@ -461,7 +507,7 @@ static int android_irrc_transmit(struct timed_irrc_data *irrc,
 						irrc->pwm_gpio_func,
 						GPIO_CFG_OUTPUT,
 						GPIO_CFG_NO_PULL,
-						GPIO_CFG_2MA),
+						IRRC_GPIO_DRV),
 					GPIO_CFG_ENABLE);
 			clk_prepare_enable(irrc->gp_clk);
 			g_irrc_clk_armed = true;
@@ -547,9 +593,13 @@ static long android_irrc_ioctl(struct file *file, unsigned int cmd, unsigned lon
 	switch (cmd) {
 	case IRRC_START:
 		rc = copy_from_user(&test, (void __user *)arg, sizeof(test));
+		if (rc)
+			return -EFAULT;
 
 		INFO_MSG("IRRC_START: freq:%d, duty:%d\n", test.frequency/1000, test.duty);
-		android_irrc_enable_pwm(irrc, test.frequency/1000, test.duty);
+		rc = android_irrc_enable_pwm(irrc, test.frequency/1000, test.duty);
+		if (rc)
+			return rc;
 #ifdef CONFIG_LGE_SW_IRRC_MUTE_SPEAKER
 		mute_spk_for_swirrc (1);
 #endif
@@ -752,7 +802,7 @@ static ssize_t codec_debug_write(struct file *filp,
 		switch (param[0]) {
 		case 1:
 			INFO_MSG("IRRC_START\n");
-			android_irrc_enable_pwm(irrc, param[1], param[2]);
+			rc = android_irrc_enable_pwm(irrc, param[1], param[2]);
 			break;
 
 		case 0:
@@ -951,7 +1001,13 @@ static ssize_t irrc_nec_test_read(struct file *file, char __user *ubuf,
 		"  echo lgscan > nec_test       # try common LG power codes\n"
 		"Carrier 38000 Hz, duty 50%, NEC frame + repeat\n"
 		"Then: cat /sys/kernel/debug/sw_irrc/timing\n"
-		"If no IR: echo 1 > /sys/kernel/debug/sw_irrc/invert\n";
+		"If no IR: echo 1 > /sys/kernel/debug/sw_irrc/invert\n"
+		"\n"
+		"GPIO steady (camera HITL):\n"
+		"  echo 1 0 0 > /sys/kernel/debug/sw_irrc/poke\n"
+		"  cat /sys/kernel/debug/gpio | grep -E 'gpio-33|gpio33'\n"
+		"  Expect out hi (not in hi); phone camera should see IR glow\n"
+		"  echo 0 0 0 > poke to stop\n";
 
 	return simple_read_from_buffer(ubuf, count, ppos, help, sizeof(help) - 1);
 }
@@ -1179,6 +1235,13 @@ static int android_irrc_probe(struct platform_device *pdev)
 		goto err_2;
 	}
 
+	rc = gpio_direction_output(irrc->pwm_gpio, 0);
+	if (rc) {
+		ERR_MSG("gpio_direction_output(%d) failed rc=%d\n",
+				irrc->pwm_gpio, rc);
+		goto err_3_gpio;
+	}
+
 	virt_bases_v = ioremap(irrc->gp_cmd_rcgr, MMSS_CC_PWM_SIZE);
 
 	rc = misc_register(&irrc_misc);
@@ -1249,6 +1312,7 @@ err_4:
 	misc_deregister(&irrc_misc);
 err_3:
 	iounmap(virt_bases_v);
+err_3_gpio:
 	gpio_free(irrc->pwm_gpio);
 err_2:
 	kfree(irrc);
