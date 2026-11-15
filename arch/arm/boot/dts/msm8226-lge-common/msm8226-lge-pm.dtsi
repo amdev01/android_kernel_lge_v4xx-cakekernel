@@ -63,9 +63,12 @@
 	};
 };
 
-&soc {
-	qcom,msm-thermal {
-		qcom,vdd-restriction-temp;
-		qcom,vdd-restriction-temp-hysteresis;
-	};
-};
+/*
+ * Do NOT blank qcom,vdd-restriction-temp{,-hysteresis} here.
+ *
+ * Bringup (098c7cfd948, 2015) overwrote the CAF msm8226.dtsi values with
+ * empty properties, which makes of_property_read_u32 return -EOVERFLOW (-75)
+ * and disables KTM vdd-restriction. That left ThermalEngine unable to talk to
+ * the KTM vdd_rstr nodes ("Error writing to KTM node") on v400 sudden-death
+ * HITL. Keep the base DT values (temp=5, hyst=10) + rail children intact.
+ */
