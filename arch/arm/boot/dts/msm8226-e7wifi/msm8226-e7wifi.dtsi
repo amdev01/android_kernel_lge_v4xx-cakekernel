@@ -70,8 +70,15 @@
 		status = "disable";
 	};
 
-	lge_sw_irrc { /* LGE_UPDATE 20130626 beekay.lee@lge.com WX_IRRC */
-		vreg2_irrc-supply = <&pm8226_lvs1>;
+	lge_sw_irrc {
+		/*
+		 * Stock e7wifi DT used LVS1 for vreg2. HITL 2026-11-10 on v400:
+		 * L19+LVS1 enable, GPIO33 PWM + LINEOUT1 DAPM all On, but the IR
+		 * LED stays dark on camera. v410/v490 (LTE) use L6 for vreg2 and
+		 * IR works. Point Wi‑Fi boards at L6 (codec 1.8 V, already up) so
+		 * the IR front-end shares the rail that actually feeds the blaster.
+		 */
+		vreg2_irrc-supply = <&pm8226_l6>;
 	};
 
 	i2c@f9925000 {

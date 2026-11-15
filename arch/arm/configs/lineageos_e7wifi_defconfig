@@ -3408,7 +3408,8 @@ CONFIG_SDCARD_FS=y
 # CONFIG_QNX4FS_FS is not set
 # CONFIG_QNX6FS_FS is not set
 # CONFIG_ROMFS_FS is not set
-# CONFIG_PSTORE is not set
+# TEMP 2026-11-15: sudden-death HITL — enable pstore for postmortem (revert after capture)
+CONFIG_PSTORE=y
 # CONFIG_SYSV_FS is not set
 # CONFIG_UFS_FS is not set
 CONFIG_F2FS_FS=y
