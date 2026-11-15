@@ -93,7 +93,13 @@ static struct wcd9xxx_mbhc_config mbhc_cfg = {
 	.gpio = 0,
 	.gpio_irq = 0,
 	.gpio_level_insert = 0,
-	.detect_extn_cable = true,
+	/*
+	 * HIGH_HPH plugs with detect_extn_cable report SND_JACK_LINEOUT →
+	 * WAM DEVICE_OUT_LINE (not in audio_policy) → speaker stays on while
+	 * the jack still plays (v400 dual-out / v490 "headset not detected").
+	 * Report as HEADPHONE instead so SW_HEADPHONE_INSERT routes correctly.
+	 */
+	.detect_extn_cable = false,
 	.micbias_enable_flags = 1 << MBHC_MICBIAS_ENABLE_THRESHOLD_HEADSET,
 	.insert_detect = true,
 	.swap_gnd_mic = NULL,
