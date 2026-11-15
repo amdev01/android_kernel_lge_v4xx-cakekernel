@@ -260,10 +260,15 @@ void __init lge_add_persist_ram_devices(void)
 		return;
 	}
 #ifdef CONFIG_RAMOOPS
-	/* persistent_ram only claims the console slice; reserve ramoops too. */
-	ret = memblock_reserve(lge_ramoops_pdata.mem_address, LGE_RAMOOPS_SIZE);
+	/*
+	 * ramoops uses request_mem_region()+ioremap(). memblock_reserve() leaves
+	 * the pages under the System RAM iomem resource, so request_mem_region
+	 * fails with -EINVAL. memblock_remove() (same pattern as MSM fixed
+	 * areas) takes it out of System RAM so the driver can claim it.
+	 */
+	ret = memblock_remove(lge_ramoops_pdata.mem_address, LGE_RAMOOPS_SIZE);
 	if (ret)
-		pr_err("%s: memblock_reserve ramoops failed (%d)\n", __func__, ret);
+		pr_err("%s: memblock_remove ramoops failed (%d)\n", __func__, ret);
 #endif
 }
 #endif /*CONFIG_ANDROID_PERSISTENT_RAM*/
