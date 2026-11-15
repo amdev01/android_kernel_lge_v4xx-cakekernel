@@ -1868,7 +1868,7 @@ CONFIG_HW_RANDOM_MSM=y
 # CONFIG_RAW_DRIVER is not set
 # CONFIG_TCG_TPM is not set
 # CONFIG_DCC_TTY is not set
-# CONFIG_RAMOOPS is not set
+CONFIG_RAMOOPS=y
 CONFIG_MSM_ADSPRPC=y
 # CONFIG_MSM_RDBG is not set
 CONFIG_I2C=y
@@ -3408,7 +3408,8 @@ CONFIG_SDCARD_FS=y
 # CONFIG_QNX4FS_FS is not set
 # CONFIG_QNX6FS_FS is not set
 # CONFIG_ROMFS_FS is not set
-# TEMP 2026-11-15: sudden-death HITL — enable pstore for postmortem (revert after capture)
+# Sudden-death HITL: pstore + ramoops (e7wifi). Hard-reset still wipes DRAM;
+# soft reboot / panic paths keep /proc/last_kmsg + ramoops buffer.
 CONFIG_PSTORE=y
 # CONFIG_SYSV_FS is not set
 # CONFIG_UFS_FS is not set

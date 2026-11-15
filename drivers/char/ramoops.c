@@ -175,6 +175,34 @@ static int __init ramoops_probe(struct platform_device *pdev)
 	record_size = pdata->record_size;
 	dump_oops = pdata->dump_oops;
 
+	/* Replay prior oops/panic records into the new boot console (if DRAM
+	 * survived). 3.4 ramoops has no pstore FS frontend — this is the
+	 * userspace-visible recovery path via dmesg / last_kmsg.
+	 */
+	{
+		int i;
+		for (i = 0; i < cxt->max_count; i++) {
+			char *rec = cxt->virt_addr + (i * cxt->record_size);
+			if (memcmp(rec, RAMOOPS_KERNMSG_HDR,
+				   strlen(RAMOOPS_KERNMSG_HDR)))
+				continue;
+			pr_emerg("ramoops: found previous record %d\n", i);
+			/* Print in chunks — record may be large. */
+			{
+				size_t off = 0;
+				size_t len = strnlen(rec, cxt->record_size);
+				while (off < len) {
+					size_t chunk = len - off;
+					if (chunk > 512)
+						chunk = 512;
+					pr_emerg("%.*s", (int)chunk, rec + off);
+					off += chunk;
+				}
+				pr_emerg("\n");
+			}
+		}
+	}
+
 	return 0;
 
 fail1:

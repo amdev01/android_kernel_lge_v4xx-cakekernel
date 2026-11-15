@@ -165,12 +165,23 @@ void get_dt_cn_prop_u32(const char *name, uint32_t *u32);
 extern unsigned int lge_get_uart_mode(void);
 extern void lge_set_uart_mode(unsigned int um);
 
-#ifdef CONFIG_ANDROID_PERSISTENT_RAM
-#define LGE_PERSISTENT_RAM_SIZE (SZ_256K)
-#endif
-
 #if defined(CONFIG_ANDROID_RAM_CONSOLE)
 #define LGE_RAM_CONSOLE_SIZE (128 * SZ_1K * 2)
+#endif
+
+#ifdef CONFIG_RAMOOPS
+/* Panic/oops dump region (separate from ram_console). Soft reboot survives;
+ * KPDPWR_AND_RESIN hard-reset cold boots still wipe DRAM. */
+#define LGE_RAMOOPS_SIZE (SZ_128K)
+#define LGE_RAMOOPS_RECORD_SIZE (SZ_32K)
+#endif
+
+#ifdef CONFIG_ANDROID_PERSISTENT_RAM
+#ifdef CONFIG_RAMOOPS
+#define LGE_PERSISTENT_RAM_SIZE (LGE_RAM_CONSOLE_SIZE + LGE_RAMOOPS_SIZE)
+#else
+#define LGE_PERSISTENT_RAM_SIZE (SZ_256K)
+#endif
 #endif
 
 void __init lge_reserve(void);

@@ -5,6 +5,8 @@
 
 #include <linux/platform_device.h>
 #include <linux/persistent_ram.h>
+#include <linux/ramoops.h>
+#include <linux/memblock.h>
 #include <asm/setup.h>
 #include <asm/system_info.h>
 #include <linux/io.h>
@@ -211,19 +213,45 @@ static struct persistent_ram_descriptor lge_pram_descs[] = {
 };
 
 static struct persistent_ram lge_persist_ram = {
-	.size = LGE_PERSISTENT_RAM_SIZE,
+	.size = LGE_RAM_CONSOLE_SIZE,
 	.num_descs = ARRAY_SIZE(lge_pram_descs),
 	.descs = lge_pram_descs,
 };
+
+#ifdef CONFIG_RAMOOPS
+static struct ramoops_platform_data lge_ramoops_pdata = {
+	.mem_size = LGE_RAMOOPS_SIZE,
+	.mem_address = 0, /* filled in lge_add_persist_ram_devices */
+	.record_size = LGE_RAMOOPS_RECORD_SIZE,
+	.dump_oops = 1,
+};
+
+static struct platform_device lge_ramoops_device = {
+	.name = "ramoops",
+	.dev = {
+		.platform_data = &lge_ramoops_pdata,
+	},
+};
+#endif
 
 void __init lge_add_persist_ram_devices(void)
 {
 	int ret;
 	struct memtype_reserve *mt = &reserve_info->memtype_reserve_table[MEMTYPE_EBI1];
+	phys_addr_t region_start;
+	phys_addr_t region_size = LGE_PERSISTENT_RAM_SIZE;
 
-	/* ram->start = 0x7D600000; */
-	/* change to variable value to ram->start value */
-	lge_persist_ram.start = mt->start - LGE_PERSISTENT_RAM_SIZE;
+	/* Carve console (+ optional ramoops) from top of EBI1. */
+	region_start = mt->start - region_size;
+#ifdef CONFIG_RAMOOPS
+	lge_ramoops_pdata.mem_address = region_start;
+	lge_persist_ram.start = region_start + LGE_RAMOOPS_SIZE;
+	pr_info("RAMOOPS START ADDR : 0x%lx size=0x%lx\n",
+		(unsigned long)lge_ramoops_pdata.mem_address,
+		(unsigned long)lge_ramoops_pdata.mem_size);
+#else
+	lge_persist_ram.start = region_start;
+#endif
 	pr_info("PERSIST RAM CONSOLE START ADDR : 0x%x\n", lge_persist_ram.start);
 
 	ret = persistent_ram_early_init(&lge_persist_ram);
@@ -231,6 +259,12 @@ void __init lge_add_persist_ram_devices(void)
 		pr_err("%s: failed to initialize persistent ram\n", __func__);
 		return;
 	}
+#ifdef CONFIG_RAMOOPS
+	/* persistent_ram only claims the console slice; reserve ramoops too. */
+	ret = memblock_reserve(lge_ramoops_pdata.mem_address, LGE_RAMOOPS_SIZE);
+	if (ret)
+		pr_err("%s: memblock_reserve ramoops failed (%d)\n", __func__, ret);
+#endif
 }
 #endif /*CONFIG_ANDROID_PERSISTENT_RAM*/
 
@@ -248,6 +282,9 @@ void __init lge_add_persistent_device(void)
 #endif
 #ifdef CONFIG_PERSISTENT_TRACER
 	platform_device_register(&persistent_trace_device);
+#endif
+#ifdef CONFIG_RAMOOPS
+	platform_device_register(&lge_ramoops_device);
 #endif
 
 }
