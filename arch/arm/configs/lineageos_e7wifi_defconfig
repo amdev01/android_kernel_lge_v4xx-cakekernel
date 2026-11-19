@@ -3408,7 +3408,7 @@ CONFIG_SDCARD_FS=y
 # CONFIG_QNX4FS_FS is not set
 # CONFIG_QNX6FS_FS is not set
 # CONFIG_ROMFS_FS is not set
-# Sudden-death HITL: pstore + ramoops (e7wifi). Hard-reset still wipes DRAM;
+# Sudden-death HITL: pstore + ramoops (e7wifi/v400). Hard-reset still wipes DRAM;
 # soft reboot / panic paths keep /proc/last_kmsg + ramoops buffer.
 CONFIG_PSTORE=y
 # CONFIG_SYSV_FS is not set
