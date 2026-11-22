@@ -1962,19 +1962,9 @@ static int __ref set_enabled(const char *val, const struct kernel_param *kp)
 	int ret = 0;
 
 	ret = param_set_bool(val, kp);
-	/*
-	 * Deadboot Phase 3A HITL (v400 wifi): match stock KK v400_10c hand-off.
-	 * Stock disables polling / clears freq caps on enabled=0; cake CAF
-	 * called interrupt_mode_init() here (IRQ hand-off). That path is a
-	 * suspect for PS_HOLD/EDL once thermal-engine + qmux are live — keep
-	 * interrupt_mode_init() available but do not invoke it from this
-	 * sysfs write (see also msm_thermal_late_init).
-	 */
-	if (!enabled) {
-		disable_msm_thermal();
-		hotplug_init();
-		freq_mitigation_init();
-	} else
+	if (!enabled)
+		interrupt_mode_init();
+	else
 		pr_info("no action for enabled = %d\n",
 			enabled);
 
@@ -3362,11 +3352,7 @@ int __init msm_thermal_late_init(void)
 	INIT_WORK(&timer_work, timer_work_fn);
 	msm_thermal_add_timer_nodes();
 
-	/*
-	 * Deadboot Phase 3A: stock v400_10c late_init does NOT call
-	 * interrupt_mode_init(). Skip cake CAF auto IRQ hand-off so
-	 * thermal-engine bring-up matches KK polling semantics.
-	 */
+	interrupt_mode_init();
 	return 0;
 }
 late_initcall(msm_thermal_late_init);
