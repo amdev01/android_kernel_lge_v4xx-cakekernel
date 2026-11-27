@@ -73,6 +73,15 @@
 		status = "disable";
 	};
 
+	/*
+	 * Wi-Fi SKU: no baseband. Keep MSS/PIL off so sensors/thermal QMI
+	 * clients do not subsystem_get("modem") → MBA/MPSS load → ~40s
+	 * Fatal + RELATED SSR thrash. LTE (e8lte) leaves msm8226.dtsi enabled.
+	 */
+	qcom,mss@fc880000 {
+		status = "disabled";
+	};
+
 	lge_sw_irrc { /* LGE_UPDATE 20130626 beekay.lee@lge.com WX_IRRC */
 		vreg2_irrc-supply = <&pm8226_lvs1>;
 	};
